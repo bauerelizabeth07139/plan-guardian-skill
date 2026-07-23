@@ -37,10 +37,19 @@ Even for simple requests, produce at minimum:
 
 - Spawn two or more short-lived subagents for complex tasks.
 - Each verifier must start with zero prior memory of the current task.
+- **Multimodal parity: if the parent model supports multimodal input (images, audio, video, files), the spawned subagents MUST use a model with equivalent multimodal capability. Do not downgrade a multimodal task to text-only verification. When the task involves images, screenshots, diagrams, UI, or any visual artifact, ensure the verifier model can see and reason about those artifacts.**
 - Follow `references/memoryless_review.md` strictly.
 - Give verifiers only the deliverables, the plan, and the acceptance criteria.
 - Require each verifier to output either PASS or FAIL: <reason>.
 - Treat any FAIL as blocking and fix before continuing.
+
+## Subagent Model Selection
+
+When spawning verification subagents:
+1. Inherit the parent model by default.
+2. If the task involves visual content (images, screenshots, diagrams, rendered UI, PDFs with layout), verify the subagent model has vision/multimodal support before spawning.
+3. If the parent model does not support multimodal but the task requires it (e.g., image generation verification, UI screenshot review), explicitly set the subagent model to one that does.
+4. Never silently drop visual context from a verifier's input packet.
 
 ## Output Format
 

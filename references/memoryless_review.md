@@ -1,4 +1,4 @@
-﻿# Memoryless Review Protocol
+# Memoryless Review Protocol
 
 ## Purpose
 Use memoryless subagents to verify completion without inherited assumptions.
@@ -15,6 +15,19 @@ Do not include:
 - Previous draft answers
 - Suspected fixes
 - Intended conclusions
+
+## Multimodal Parity
+
+**Critical rule: verifier capability must match task modality.**
+
+- If the task involves images, screenshots, diagrams, UI layouts, rendered output, PDFs with visual layout, or any non-text artifact, the verifier MUST use a multimodal/vision-capable model.
+- Before spawning a verifier, check:
+  1. Does the task produce or consume visual artifacts?
+  2. Does the parent session use a multimodal model?
+  3. Does the candidate verifier model support vision?
+- If the answer to (1) or (2) is yes, and (3) is no, select a different model for the verifier.
+- Never strip images or visual context from the verifier input packet when the task requires visual reasoning.
+- When verifying image generation, UI rendering, layout correctness, chart output, or screenshot-based tests, the verifier must see the actual visual output, not a text description of it.
 
 ## Verifier Contract
 Each verifier must:
@@ -43,4 +56,3 @@ A task is complete only when:
 - Every acceptance criterion is satisfied
 - Evidence exists for every satisfied criterion
 - All verifier reports are PASS
-
