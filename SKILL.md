@@ -33,23 +33,40 @@ Even for simple requests, produce at minimum:
 5. After execution, validate each criterion with evidence.
 6. If verification fails, revise the plan and loop until all checks pass.
 
+## Subagent Roles and Model Strategy
+
+Use two distinct subagent roles:
+
+### 1. Worker Subagents (execution)
+- Purpose: implement, build, fix, edit.
+- Model: inherit the parent model by default. Do NOT override unless there is a specific reason.
+- Spawn with `spawn_agent` without the `model` parameter.
+
+### 2. Verifier Subagents (review)
+- Purpose: independently verify completion against acceptance criteria.
+- Model: **must support multimodal input when the task involves images, screenshots, diagrams, UI, PDFs with layout, or any visual artifact.**
+- Spawn with `spawn_agent` and set `model` explicitly when the parent model is not multimodal or when a stronger vision model is needed.
+- If the parent model is already multimodal, verifiers can inherit it (omit `model`).
+- If the parent model is NOT multimodal but the task requires visual verification, set `model` to a known multimodal model.
+
+### Model Selection Decision Tree
+
+```
+Task involves visual artifacts?
+|- NO  -> verifiers inherit parent model
+- YES -> parent model is multimodal?
+    |- YES -> verifiers inherit parent model
+    - NO  -> verifiers MUST use explicit multimodal model override
+```
+
 ## Verification Rules
 
-- Spawn two or more short-lived subagents for complex tasks.
+- Spawn two or more short-lived verifiers for complex tasks.
 - Each verifier must start with zero prior memory of the current task.
-- **Multimodal parity: if the parent model supports multimodal input (images, audio, video, files), the spawned subagents MUST use a model with equivalent multimodal capability. Do not downgrade a multimodal task to text-only verification. When the task involves images, screenshots, diagrams, UI, or any visual artifact, ensure the verifier model can see and reason about those artifacts.**
 - Follow `references/memoryless_review.md` strictly.
 - Give verifiers only the deliverables, the plan, and the acceptance criteria.
 - Require each verifier to output either PASS or FAIL: <reason>.
 - Treat any FAIL as blocking and fix before continuing.
-
-## Subagent Model Selection
-
-When spawning verification subagents:
-1. Inherit the parent model by default.
-2. If the task involves visual content (images, screenshots, diagrams, rendered UI, PDFs with layout), verify the subagent model has vision/multimodal support before spawning.
-3. If the parent model does not support multimodal but the task requires it (e.g., image generation verification, UI screenshot review), explicitly set the subagent model to one that does.
-4. Never silently drop visual context from a verifier's input packet.
 
 ## Output Format
 
