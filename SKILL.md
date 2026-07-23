@@ -32,6 +32,45 @@ Even for simple requests, produce at minimum:
 4. Start execution only after the plan is drafted.
 5. After execution, validate each criterion with evidence.
 6. If verification fails, revise the plan and loop until all checks pass.
+7. **Final gate: spawn memoryless subagent verifiers to independently audit the entire plan against all acceptance criteria before responding.**
+
+## Final Verification Gate (MANDATORY)
+
+**This step MUST NOT be skipped. Before returning the final answer to the user, spawn at least two memoryless subagent verifiers.**
+
+### How to execute the final gate:
+
+1. Collect all deliverables produced during execution.
+2. Write a checklist of every acceptance criterion from the plan.
+3. Spawn two or more subagents with `spawn_agent`. Each verifier:
+   - Receives ONLY the deliverables, the plan, and the acceptance criteria.
+   - Receives ZERO prior conversation context.
+   - Has NO memory of how the work was done.
+   - Must independently read the actual files/artifacts.
+   - Must output PASS or FAIL for each criterion.
+   - If FAIL, must state the exact unmet criterion and missing evidence.
+4. If ANY verifier returns FAIL, fix the issue and re-run the final gate.
+5. Only respond to the user when ALL verifiers return ALL PASS.
+
+### Final gate prompt template:
+
+```
+You are a strict code reviewer. You have NO prior memory of how these files were created.
+Verify the following deliverable against acceptance criteria. Be harsh. FAIL if anything is missing or wrong.
+
+## Deliverable
+<path or description>
+
+## Acceptance Criteria
+<list every criterion from the plan>
+
+## Output Format
+For each criterion:
+- CRITERION N: PASS or FAIL
+- If FAIL: exact reason and what is missing
+
+End with: VERDICT: ALL PASS or VERDICT: FAIL
+```
 
 ## Subagent Roles and Model Strategy
 
@@ -44,7 +83,8 @@ Use two distinct subagent roles:
 
 ### 2. Verifier Subagents (review)
 - Purpose: independently verify completion against acceptance criteria.
-- Model: **must support multimodal input when the task involves images, screenshots, diagrams, UI, PDFs with layout, or any visual artifact.**
+- Used in the final verification gate.
+- Model: must support multimodal input when the task involves images, screenshots, diagrams, UI, PDFs with layout, or any visual artifact.
 - Spawn with `spawn_agent` and set `model` explicitly when the parent model is not multimodal or when a stronger vision model is needed.
 
 ### Runtime Multimodal Detection
