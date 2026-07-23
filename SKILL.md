@@ -26,50 +26,79 @@ Even for simple requests, produce at minimum:
 
 ## Required Workflow
 
-1. Clarify intent in one paragraph.
-2. Draft a numbered plan with dependencies and explicit risks.
-3. For every step, add measurable acceptance criteria.
-4. Start execution only after the plan is drafted.
-5. After execution, validate each criterion with evidence.
-6. If verification fails, revise the plan and loop until all checks pass.
-7. **Final gate: spawn memoryless subagent verifiers to independently audit the entire plan against all acceptance criteria before responding.**
+**Every step below is mandatory. Do not skip any step. Do not self-verify. All verification MUST use `spawn_agent`.**
 
-## Final Verification Gate (MANDATORY)
+### Step 1: Clarify Intent
+- Restate the user request in one paragraph.
 
-**This step MUST NOT be skipped. Before returning the final answer to the user, spawn at least two memoryless subagent verifiers.**
+### Step 2: Draft Plan
+- Produce a numbered plan with dependencies and explicit risks.
+- Each step must have a clear deliverable.
 
-### How to execute the final gate:
+### Step 3: Define Acceptance Criteria
+- For every plan step, write one or more measurable acceptance criteria.
+- Each criterion must be observable and binary (pass/fail).
 
-1. Collect all deliverables produced during execution.
-2. Write a checklist of every acceptance criterion from the plan.
-3. Spawn two or more subagents with `spawn_agent`. Each verifier:
-   - Receives ONLY the deliverables, the plan, and the acceptance criteria.
+### Step 4: Execute
+- Implement the plan step by step.
+- Do not proceed to verification until execution is complete.
+
+### Step 5: Per-Step Verification (MANDATORY - uses `spawn_agent`)
+- After execution, for each plan step:
+  1. Collect the deliverable for that step.
+  2. Spawn a memoryless verifier subagent with `spawn_agent` (fork_context=false).
+  3. Give the verifier ONLY: the deliverable, the plan step, and its acceptance criteria.
+  4. The verifier MUST independently read the actual artifacts.
+  5. The verifier MUST output PASS or FAIL for each criterion.
+- If ANY verifier returns FAIL for ANY step, fix the issue and re-verify that step with a NEW verifier.
+- Do not proceed to the final gate until ALL per-step verifiers return PASS.
+
+### Step 6: Final Gate (MANDATORY - uses `spawn_agent`)
+**You MUST NOT respond to the user until this step completes successfully.**
+
+1. Collect ALL deliverables from ALL plan steps.
+2. Write a single checklist of EVERY acceptance criterion from the entire plan.
+3. Spawn at least TWO memoryless verifier subagents with `spawn_agent` (fork_context=false).
+4. Each final verifier:
+   - Receives ONLY the deliverables, the full plan, and all acceptance criteria.
    - Receives ZERO prior conversation context.
    - Has NO memory of how the work was done.
-   - Must independently read the actual files/artifacts.
-   - Must output PASS or FAIL for each criterion.
-   - If FAIL, must state the exact unmet criterion and missing evidence.
-4. If ANY verifier returns FAIL, fix the issue and re-run the final gate.
-5. Only respond to the user when ALL verifiers return ALL PASS.
+   - MUST independently read the actual files/artifacts.
+   - MUST output PASS or FAIL for each criterion.
+   - If FAIL, MUST state the exact unmet criterion and missing evidence.
+5. If ANY final verifier returns FAIL, fix the issue and re-run the entire final gate with NEW verifiers.
+6. Only respond to the user when ALL final verifiers return ALL PASS for ALL criteria.
 
-### Final gate prompt template:
+### Step 7: Report
+- Present the final plan, status per step, verifier evidence, and remediation actions taken.
+
+## Verifier Prompt Template
+
+Use this template for every verifier spawned in Steps 5 and 6:
 
 ```
 You are a strict code reviewer. You have NO prior memory of how these files were created.
 Verify the following deliverable against acceptance criteria. Be harsh. FAIL if anything is missing or wrong.
 
 ## Deliverable
-<path or description>
+<path or description of what to check>
 
 ## Acceptance Criteria
-<list every criterion from the plan>
+<criterion 1>
+<criterion 2>
+...
+
+## Instructions
+- Read the actual files/artifacts. Do not assume they exist.
+- Check each criterion independently.
+- Do not guess. If you cannot verify something, mark it FAIL.
 
 ## Output Format
 For each criterion:
 - CRITERION N: PASS or FAIL
 - If FAIL: exact reason and what is missing
 
-End with: VERDICT: ALL PASS or VERDICT: FAIL
+End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers)
 ```
 
 ## Subagent Roles and Model Strategy
@@ -78,14 +107,15 @@ Use two distinct subagent roles:
 
 ### 1. Worker Subagents (execution)
 - Purpose: implement, build, fix, edit.
-- Model: inherit the parent model by default. Do NOT override unless there is a specific reason.
+- Model: inherit the parent model by default. Do NOT override.
 - Spawn with `spawn_agent` without the `model` parameter.
+- Used in Step 4.
 
 ### 2. Verifier Subagents (review)
 - Purpose: independently verify completion against acceptance criteria.
-- Used in the final verification gate.
 - Model: must support multimodal input when the task involves images, screenshots, diagrams, UI, PDFs with layout, or any visual artifact.
-- Spawn with `spawn_agent` and set `model` explicitly when the parent model is not multimodal or when a stronger vision model is needed.
+- Spawn with `spawn_agent`. Set `model` explicitly when the parent model is not multimodal.
+- Used in Steps 5 and 6.
 
 ### Runtime Multimodal Detection
 
@@ -99,8 +129,6 @@ python scripts/detect_multimodal.py <base_url> <api_key> <model_id>
 - Exit code 1 + `"multimodal": false` -> model rejects images
 - Exit code 2 -> network/auth error, cannot determine
 
-Detection strategy: send a minimal 1x1 PNG to `/chat/completions`. If the API returns 200, the model is multimodal. If it returns 404 with "image" in the error message, it is not.
-
 ### Model Selection Decision Tree
 
 ```
@@ -111,31 +139,11 @@ Task involves visual artifacts?
     `-- NO  -> verifiers MUST use explicit multimodal model override
 ```
 
-## Verification Rules
+## Hard Rules
 
-- Spawn two or more short-lived verifiers for complex tasks.
-- Each verifier must start with zero prior memory of the current task.
-- Follow `references/memoryless_review.md` strictly.
-- Give verifiers only the deliverables, the plan, and the acceptance criteria.
-- Require each verifier to output either PASS or FAIL: <reason>.
-- Treat any FAIL as blocking and fix before continuing.
-
-## Output Format
-
-Return:
-- The final plan.
-- The current status for each step.
-- The evidence collected from verifiers.
-- The remediation actions taken, if any.
-
-## Anti-Hallucination Rules
-
-- Prefer concrete artifacts over claims.
-- Prefer observable outputs over inferred intent.
-- Do not assume a step passed without evidence.
-
-## Failure Handling
-
-- If evidence is missing, mark the step incomplete.
-- If conflicting verifier results appear, add another independent verifier.
-- Stop only when all acceptance criteria are satisfied.
+1. NEVER respond to the user without completing Step 6 (final gate).
+2. NEVER self-verify. All verification uses `spawn_agent` with `fork_context=false`.
+3. NEVER reuse a verifier that returned FAIL. Spawn a NEW one after fixing.
+4. NEVER pass conversation history to verifiers. They get deliverables + criteria only.
+5. NEVER assume a step passed without verifier evidence.
+6. If two final verifiers disagree, spawn a third. If conflict persists, treat as FAIL.
