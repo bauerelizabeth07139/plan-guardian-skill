@@ -46,17 +46,29 @@ Use two distinct subagent roles:
 - Purpose: independently verify completion against acceptance criteria.
 - Model: **must support multimodal input when the task involves images, screenshots, diagrams, UI, PDFs with layout, or any visual artifact.**
 - Spawn with `spawn_agent` and set `model` explicitly when the parent model is not multimodal or when a stronger vision model is needed.
-- If the parent model is already multimodal, verifiers can inherit it (omit `model`).
-- If the parent model is NOT multimodal but the task requires visual verification, set `model` to a known multimodal model.
+
+### Runtime Multimodal Detection
+
+APIs do not always advertise multimodal capability in the models list. To detect it at runtime, use `scripts/detect_multimodal.py`:
+
+```bash
+python scripts/detect_multimodal.py <base_url> <api_key> <model_id>
+```
+
+- Exit code 0 + `"multimodal": true` -> model accepts images
+- Exit code 1 + `"multimodal": false` -> model rejects images
+- Exit code 2 -> network/auth error, cannot determine
+
+Detection strategy: send a minimal 1x1 PNG to `/chat/completions`. If the API returns 200, the model is multimodal. If it returns 404 with "image" in the error message, it is not.
 
 ### Model Selection Decision Tree
 
 ```
 Task involves visual artifacts?
-|- NO  -> verifiers inherit parent model
-- YES -> parent model is multimodal?
-    |- YES -> verifiers inherit parent model
-    - NO  -> verifiers MUST use explicit multimodal model override
+|-- NO  -> verifiers inherit parent model
+`-- YES -> runtime detect: is parent model multimodal?
+    |-- YES -> verifiers inherit parent model
+    `-- NO  -> verifiers MUST use explicit multimodal model override
 ```
 
 ## Verification Rules
