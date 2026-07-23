@@ -50,6 +50,7 @@ Even for simple requests, produce at minimum:
   3. Give the verifier ONLY: the deliverable, the plan step, and its acceptance criteria.
   4. The verifier MUST independently read the actual artifacts.
   5. The verifier MUST output PASS or FAIL for each criterion.
+  6. Use `wait_agent` with `timeout_ms=120000` (2 minutes) to allow enough time for the verifier to read files and produce results.
 - If ANY verifier returns FAIL for ANY step, fix the issue and re-verify that step with a NEW verifier.
 - Do not proceed to the final gate until ALL per-step verifiers return PASS.
 
@@ -66,11 +67,24 @@ Even for simple requests, produce at minimum:
    - MUST independently read the actual files/artifacts.
    - MUST output PASS or FAIL for each criterion.
    - If FAIL, MUST state the exact unmet criterion and missing evidence.
-5. If ANY final verifier returns FAIL, fix the issue and re-run the entire final gate with NEW verifiers.
-6. Only respond to the user when ALL final verifiers return ALL PASS for ALL criteria.
+5. Use `wait_agent` with `timeout_ms=180000` (3 minutes) for final verifiers since they check more deliverables.
+6. If ANY final verifier returns FAIL, fix the issue and re-run the entire final gate with NEW verifiers.
+7. Only respond to the user when ALL final verifiers return ALL PASS for ALL criteria.
 
 ### Step 7: Report
 - Present the final plan, status per step, verifier evidence, and remediation actions taken.
+
+## Verifier Timeout Rules
+
+Verifiers need time to read actual files and produce thorough analysis. Use these timeout values:
+
+| Verifier type | wait_agent timeout_ms |
+|---|---|
+| Per-step verifier (Step 5) | 120000 (2 min) |
+| Final gate verifier (Step 6) | 180000 (3 min) |
+| Retry after FAIL | 180000 (3 min) |
+
+If a verifier times out, treat it as FAIL and spawn a new verifier with a longer timeout (add 60000 each retry, max 360000).
 
 ## Verifier Prompt Template
 
@@ -147,3 +161,5 @@ Task involves visual artifacts?
 4. NEVER pass conversation history to verifiers. They get deliverables + criteria only.
 5. NEVER assume a step passed without verifier evidence.
 6. If two final verifiers disagree, spawn a third. If conflict persists, treat as FAIL.
+7. NEVER use default timeout for verifiers. Always set `timeout_ms` explicitly per the timeout table.
+8. If a verifier times out, treat as FAIL, increase timeout by 60000, and retry with a NEW verifier.
