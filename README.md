@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.0.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-1.1.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -25,8 +25,8 @@ Complex tasks fail silently when plans are loose and verification is shallow. Pl
 - 🎯 **Strict Planning** — Every request starts with a numbered plan, dependencies, and acceptance criteria
 - 🤖 **Subagent-First** — Main loop stays lightweight; workers and verifiers handle the heavy lifting
 - 🔍 **Memoryless Verification** — Independent subagents verify completion with zero prior context
-- 🧠 **Modal-Aware** — Automatically uses multimodal models when visual artifacts are involved
-- 🔄 **Auto-Revision Loops** — If any verifier returns FAIL, plan is revised and re-verified until all pass
+- 🧠 **Multimodal-First** — Workers prefer multimodal models; verifiers always use them
+- 🔄 **Re-Planning Protocol** — When verification fails, a new plan is drafted (not blind retry) and re-verified until all pass
 
 ---
 
@@ -40,7 +40,7 @@ flowchart TD
     D --> E[Worker Subagent<br/>Implementation]
     E --> F[Memoryless Verifier<br/>Per-Step Check]
     F -->|PASS| G{All Steps OK?}
-    F -->|FAIL| H[Revise Plan] --> D
+    F -->|FAIL| H["Re-Plan (new 7-step plan)"] --> D
     G -->|Yes| I[Final Gate<br/>2+ Independent Verifiers]
     G -->|No| D
     I -->|ALL PASS| J[✅ Final Report]
@@ -92,9 +92,9 @@ python scripts/validate_skill.py .
 | Step | What Happens | Who Does It |
 |------|-------------|-------------|
 | **1. Clarify Intent** | Restate user request in one paragraph | Main Loop |
-| **2. Draft Plan** | Numbered steps with dependencies, risks, and deliverables | Main Loop |
+| **2. Draft Plan** | Exactly 7 numbered steps with dependencies, risks, and deliverables | Main Loop |
 | **3. Acceptance Criteria** | Binary pass/fail criteria for every step | Main Loop |
-| **4. Execute** | Implement the plan step by step | **Worker Subagent** |
+| **4. Execute** | Delegate all steps to Worker subagents | **Worker Subagent** |
 | **5. Per-Step Verification** | Independent memoryless verifier checks each step | **Verifier Subagent** |
 | **6. Final Gate** | ≥2 memoryless verifiers check ALL criteria | **Verifier Subagents** |
 | **7. Report** | Present plan, status, evidence, and remediation actions | Main Loop |
@@ -110,14 +110,14 @@ python scripts/validate_skill.py .
 
 ### Worker Subagents
 - Implement, build, fix, edit, inspect files, run tests
-- Default: inherit parent model for text/code tasks
+- **Prefer multimodal model by default** — fall back to parent for pure text/code only
 - **Visual rule**: MUST use multimodal model for image/UI/PDF tasks
 
 ### Verifier Subagents
 - Independent, memoryless (`fork_context=false`)
 - Receive only: deliverables + acceptance criteria
 - Output: `PASS` or `FAIL` with exact reason
-- **Visual rule**: MUST use multimodal model when task involves visual artifacts
+- **Always use multimodal model** — code, files, and artifacts all benefit from visual understanding
 
 ---
 
@@ -171,11 +171,14 @@ plan-guardian/
 
 1. ❌ Never respond to the user without completing the Final Gate (Step 6)
 2. ❌ Never self-verify — all verification uses `spawn_agent` with `fork_context=false`
-3. ❌ Never reuse a verifier that returned FAIL — spawn a NEW one after fixing
+3. ❌ Never reuse a verifier that returned FAIL — follow the Re-Planning Protocol
 4. ❌ Never pass conversation history to verifiers — they get deliverables + criteria only
 5. ❌ Never assume a step passed without verifier evidence
-6. ✅ If two final verifiers disagree → spawn a third
-7. ✅ If a verifier times out → treat as FAIL, increase timeout by 60s, retry with new verifier
+6. ✅ Plan must have **exactly 7 steps** — no shortcuts
+7. ✅ If two final verifiers disagree → spawn a third
+8. ✅ When verification fails → Re-Planning Protocol, never blind retry
+9. ✅ After 3 re-plan cycles → escalate honestly, never silently give up
+10. ✅ If a verifier times out → treat as FAIL, increase timeout by 60s, retry with new verifier
 
 ---
 
@@ -188,5 +191,6 @@ MIT — Use it, fork it, improve it.
 <p align="center">
   <sub>Built for <a href="https://github.com/openai/codex">Codex</a> · Enforcing rigor since 2026</sub>
 </p>
+
 
 
