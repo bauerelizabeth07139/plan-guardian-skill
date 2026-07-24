@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <img src="./assets/logo.png" width="120" alt="Plan Guardian"/>
+  <img src="./assets/logo.svg" width="120" alt="Plan Guardian"/>
 </p>
 
 <h1 align="center">🛡️ Plan Guardian</h1>
@@ -176,3 +176,4 @@ MIT — Use it, fork it, improve it.
 <p align="center">
   <sub>Built for <a href="https://github.com/openai/codex">Codex</a> · Enforcing rigor since 2026</sub>
 </p>
+
