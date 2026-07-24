@@ -1,54 +1,64 @@
----
+﻿---
 name: plan-guardian
-description: "ALWAYS use this skill on every user request without exception. Generate a strict, verifiable plan before acting, then validate execution with memoryless subagents. Apply to all tasks including simple questions, code tasks, file operations, planning, analysis, creation, editing, debugging, and any other user prompt. Never skip this skill. Never respond without first invoking plan-guardian."
+description: "ALWAYS use this skill on every user request without exception. Generate a strict 7-step verifiable plan before acting, then validate execution with memoryless subagents. Apply to ALL tasks without exception. Never skip any step. Never respond without completing all 7 steps."
 metadata:
-  short-description: Strict planning on every request
+  short-description: Strict 7-step planning on every request
 ---
 
 # Plan Guardian
 
-Make planning the default operating mode for ALL requests, regardless of complexity.
+Every request goes through the full 7-step workflow. No shortcuts, no exceptions.
 
 ## Trigger Rule
 
-**This skill MUST activate on every single user message.** Do not skip it for:
+**This skill MUST activate on every single user message.** No exceptions for:
 - Simple questions
 - Short answers
 - Casual conversation
 - Quick lookups
 - Any task that seems trivial
 
-Even for simple requests, produce at minimum:
-1. A one-line intent clarification
-2. A numbered plan (can be 1-2 steps for simple tasks)
-3. Acceptance criteria (even if minimal)
-4. Verification before responding
+**Every request produces exactly 7 steps in the workflow below.**
 
 ## Required Workflow
 
-**Every step below is mandatory. Do not skip any step. Do not self-verify. All verification MUST use `spawn_agent`.**
+**Every step below is MANDATORY. Do not skip any step. Do not self-verify. All verification MUST use `spawn_agent`.**
 
 ### Step 1: Clarify Intent
 - Restate the user request in one paragraph.
+- Identify the core deliverable.
+- Identify any implicit requirements the user didn't explicitly state.
 
 ### Step 2: Draft Plan
-- Produce a numbered plan with dependencies and explicit risks.
-- Each step must have a clear deliverable.
+- Produce a numbered plan with **at least 3 concrete steps**.
+- Each step must have:
+  - A clear deliverable
+  - Dependencies on other steps (if any)
+  - Explicit risks or edge cases
+- The plan must be specific enough that a stranger could execute it.
 
 ### Step 3: Define Acceptance Criteria
-- For every plan step, write one or more measurable acceptance criteria.
-- Each criterion must be observable and binary (pass/fail).
+- For **every** plan step, write **at least one** measurable acceptance criterion.
+- Each criterion must be:
+  - Observable (can be checked by reading a file, running a command, or inspecting output)
+  - Binary (PASS or FAIL, no ambiguity)
+- Write criteria BEFORE execution, not after.
 
-### Step 4: Execute\r\n- Implement the plan step by step.\r\n- When a step is non-trivial, multi-file, or command-heavy, delegate the work to a Worker subagent instead of doing it inline.\r\n- Keep the main loop focused on coordination, not on pasting large content or long outputs.\r\n- Do not proceed to verification until execution is complete.
+### Step 4: Execute
+- Implement the plan step by step.
+- When a step is non-trivial, multi-file, or command-heavy, delegate the work to a Worker subagent instead of doing it inline.
+- Keep the main loop focused on coordination, not on pasting large content or long outputs.
+- Do not proceed to verification until ALL execution is complete.
+- Do not take shortcuts. If the plan says build X, build X completely.
 
 ### Step 5: Per-Step Verification (MANDATORY - uses `spawn_agent`)
-- After execution, for each plan step:
+- After execution, for **each** plan step:
   1. Collect the deliverable for that step.
   2. Spawn a memoryless verifier subagent with `spawn_agent` (fork_context=false).
   3. Give the verifier ONLY: the deliverable, the plan step, and its acceptance criteria.
   4. The verifier MUST independently read the actual artifacts.
   5. The verifier MUST output PASS or FAIL for each criterion.
-  6. Use `wait_agent` with `timeout_ms=120000` (2 minutes) to allow enough time for the verifier to read files and produce results.
+  6. Use `wait_agent` with `timeout_ms=120000` (2 minutes).
 - If ANY verifier returns FAIL for ANY step, fix the issue and re-verify that step with a NEW verifier.
 - Do not proceed to the final gate until ALL per-step verifiers return PASS.
 
@@ -65,16 +75,15 @@ Even for simple requests, produce at minimum:
    - MUST independently read the actual files/artifacts.
    - MUST output PASS or FAIL for each criterion.
    - If FAIL, MUST state the exact unmet criterion and missing evidence.
-5. Use `wait_agent` with `timeout_ms=180000` (3 minutes) for final verifiers since they check more deliverables.
+5. Use `wait_agent` with `timeout_ms=180000` (3 minutes) for final verifiers.
 6. If ANY final verifier returns FAIL, fix the issue and re-run the entire final gate with NEW verifiers.
 7. Only respond to the user when ALL final verifiers return ALL PASS for ALL criteria.
 
 ### Step 7: Report
 - Present the final plan, status per step, verifier evidence, and remediation actions taken.
+- Do NOT respond until Step 6 passes.
 
 ## Verifier Timeout Rules
-
-Verifiers need time to read actual files and produce thorough analysis. Use these timeout values:
 
 | Verifier type | wait_agent timeout_ms |
 |---|---|
@@ -114,40 +123,27 @@ End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers)
 ```
 
 ## Subagent Roles and Model Strategy
-## Subagent Roles and Model Strategy
 
 Use three explicit roles to keep the main loop lightweight:
 
 ### 0. Planner (main loop)
 - Purpose: clarify intent, draft plan, collect acceptances, and coordinate work.
-- Rule: keep the planner context minimal. Do not paste large files, logs, or long diffs into the planner. Prefer delegating file reads, builds, tests, and verification to subagents.
-- Rule: when a step is non-trivial, has multiple files, or requires running commands, delegate the execution to a Worker subagent instead of doing it inline.
-- Rule: the planner MUST NOT self-verify. Verification always uses memoryless verifier subagents.
+- Rule: keep the planner context minimal. Do not paste large files, logs, or long diffs into the planner.
+- Rule: when a step is non-trivial, delegate to a Worker subagent.
+- Rule: the planner MUST NOT self-verify.
 - Rule: the planner response MUST be only the final report after the final gate passes.
 
 ### 1. Worker Subagents (execution)
 - Purpose: implement, build, fix, edit, inspect files, run tests, and collect artifacts.
 - Default: inherit the parent model when the task is text/code-only.
-- Visual rule: if the task involves images, screenshots, diagrams, UI layout, PDFs with visual layout, or rendered artifacts, the worker MUST use a multimodal-capable model. If the parent model is not multimodal, override `model` explicitly for that worker.
+- Visual rule: if the task involves images, screenshots, diagrams, UI layout, PDFs with visual layout, or rendered artifacts, the worker MUST use a multimodal-capable model.
 - Context rule: workers should minimize echoed context back to the planner. Return only structured results, paths, and pass/fail summaries.
 
 ### 2. Verifier Subagents (review)
 - Purpose: independently verify completion against acceptance criteria.
 - Rule: verifiers are memoryless (`fork_context=false`) and receive only deliverables + criteria.
-- Visual rule: if the task involves visual artifacts, the verifier MUST use a multimodal model. If the parent model is not multimodal, override `model` explicitly for that verifier.
+- Visual rule: if the task involves visual artifacts, the verifier MUST use a multimodal model.
 - Context rule: verifiers must read actual artifacts themselves and must not request full conversation history.
-
-### Runtime Multimodal Detection
-
-APIs do not always advertise multimodal capability in the models list. To detect it at runtime, use `scripts/detect_multimodal.py`:
-
-```bash
-python scripts/detect_multimodal.py <base_url> <api_key> <model_id>
-```
-
-- Exit code 0 + `"multimodal": true` -> model accepts images
-- Exit code 1 + `"multimodal": false` -> model rejects images
-- Exit code 2 -> network/auth error, cannot determine
 
 ### Model Selection Decision Tree
 
@@ -169,12 +165,12 @@ Task involves visual artifacts?
 
 ## Hard Rules
 
-1. NEVER respond to the user without completing Step 6 (final gate).
+1. NEVER respond to the user without completing all 7 steps.
 2. NEVER self-verify. All verification uses `spawn_agent` with `fork_context=false`.
 3. NEVER reuse a verifier that returned FAIL. Spawn a NEW one after fixing.
 4. NEVER pass conversation history to verifiers. They get deliverables + criteria only.
 5. NEVER assume a step passed without verifier evidence.
-6. If two final verifiers disagree, spawn a third. If conflict persists, treat as FAIL.
-7. NEVER use default timeout for verifiers. Always set `timeout_ms` explicitly per the timeout table.
-8. If a verifier times out, treat as FAIL, increase timeout by 60000, and retry with a NEW verifier.
-
+6. NEVER produce a plan with fewer than 3 steps. Every plan must have at least 3 concrete steps.
+7. If two final verifiers disagree, spawn a third. If conflict persists, treat as FAIL.
+8. NEVER use default timeout for verifiers. Always set `timeout_ms` explicitly per the timeout table.
+9. If a verifier times out, treat as FAIL, increase timeout by 60000, and retry with a NEW verifier.
