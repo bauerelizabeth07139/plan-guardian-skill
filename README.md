@@ -51,13 +51,25 @@ flowchart TD
 
 ## 🚀 Quick Start
 
-### Install
+### Install — System Level (Recommended, Forced)
 
-Copy into your Codex skills directory:
+Copy into the system skills directory so it activates on **every request** automatically:
+
+```bash
+cp -r plan-guardian-skill ~/.codex/skills/.system/plan-guardian
+```
+
+System-level skills are loaded by Codex on every request. This is the **forced** mode — no manual invocation needed, no exceptions.
+
+### Install — User Level (Optional)
+
+Copy into the user skills directory if you prefer to invoke it selectively:
 
 ```bash
 cp -r plan-guardian-skill ~/.codex/skills/plan-guardian
 ```
+
+User-level skills can be invoked explicitly with `$plan-guardian` but are **not** automatically activated on every request.
 
 ### Usage
 
@@ -176,4 +188,5 @@ MIT — Use it, fork it, improve it.
 <p align="center">
   <sub>Built for <a href="https://github.com/openai/codex">Codex</a> · Enforcing rigor since 2026</sub>
 </p>
+
 
