@@ -64,7 +64,7 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
   4. The verifier MUST independently read the actual artifacts.
   5. The verifier MUST output PASS or FAIL for each criterion.
   6. Use `wait_agent` with `timeout_ms=120000` (2 minutes).
-- If ANY verifier returns FAIL for ANY step, fix the issue and re-verify that step with a NEW verifier.
+- If ANY verifier returns FAIL for ANY step, trigger the **Re-Planning Protocol** below. Do NOT simply retry — create a new plan for the failed step.
 - Do not proceed to the final gate until ALL per-step verifiers return PASS.
 
 ### Step 6: Final Gate (MANDATORY - uses `spawn_agent`)
@@ -81,13 +81,46 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
    - MUST output PASS or FAIL for each criterion.
    - If FAIL, MUST state the exact unmet criterion and missing evidence.
 5. Use `wait_agent` with `timeout_ms=180000` (3 minutes) for final verifiers.
-6. If ANY final verifier returns FAIL, fix the issue and re-run the entire final gate with NEW verifiers.
+6. If ANY final verifier returns FAIL, trigger the **Re-Planning Protocol** below for ALL failed criteria. Do NOT simply re-run the gate.
 7. Only respond to the user when ALL final verifiers return ALL PASS for ALL criteria.
 
 ### Step 7: Report
 - Present the final plan, status per step, verifier evidence, and remediation actions taken.
 - Do NOT respond until Step 6 passes.
 
+
+## Re-Planning Protocol (Triggered on FAIL)
+
+**When any verifier returns FAIL, you MUST follow this protocol exactly. Do NOT skip steps or retry blindly.**
+
+### 1. Diagnose Failure
+- Collect the FAIL verdict and the exact unmet criteria from the verifier.
+- Read the actual artifacts that were checked (files, commands, outputs).
+- Identify the root cause: was it a plan deficiency, execution error, or criteria ambiguity?
+
+### 2. Draft Revised Plan
+- Create a **new numbered plan** (still exactly 7 steps) that specifically addresses the failed criteria.
+- The revised plan MUST include:
+  - The root cause analysis from step 1
+  - New or adjusted acceptance criteria that are more precise than before
+  - A concrete remediation action for each failed criterion
+- Do NOT reuse the old plan verbatim. If the original plan was flawed, fix the plan.
+
+### 3. Execute Revised Plan
+- Execute the revised plan using Worker subagents (same delegation rules as Step 4).
+- Workers receive the revised plan steps, not the original ones.
+
+### 4. Re-Verify
+- Spawn NEW memoryless verifiers for the revised steps (same rules as Step 5).
+- Verifiers receive the revised acceptance criteria, not the original ones.
+- If FAIL again, repeat this entire Re-Planning Protocol with a NEW revision.
+
+### 5. Escalation
+- After **3 consecutive re-plan cycles** for the same failure, the planner MUST:
+  - Document the escalation in the final report
+  - Explain what was tried and why it failed
+  - Present the best-effort result with clear caveats
+- Do NOT silently give up. Always report honestly.
 ## Verifier Timeout Rules
 
 | Verifier type | wait_agent timeout_ms |
@@ -183,4 +216,5 @@ Verifier task:
 8. NEVER use default timeout for verifiers. Always set `timeout_ms` explicitly per the timeout table.
 9. NEVER execute non-trivial plan steps inline in the main loop. Always delegate to a Worker subagent.
 10. If a verifier times out, treat as FAIL, increase timeout by 60000, and retry with a NEW verifier.
+11. When verification fails, ALWAYS follow the Re-Planning Protocol. NEVER retry blindly without revising the plan.
 
