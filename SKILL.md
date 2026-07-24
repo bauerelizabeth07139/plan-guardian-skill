@@ -129,9 +129,6 @@ End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers)
 
 ## Subagent Roles and Model Strategy
 
-Use three explicit roles to keep the main loop lightweight:
-
-Use three explicit roles to keep the main loop lightweight:
 
 ### 0. Planner (main loop)
 - Purpose: clarify intent, draft plan, collect acceptances, and coordinate work.
@@ -143,23 +140,27 @@ Use three explicit roles to keep the main loop lightweight:
 
 ### 1. Worker Subagents (execution)
 - Purpose: implement, build, fix, edit, inspect files, run tests, and collect artifacts.
-- Default: inherit the parent model when the task is text/code-only.
-- Visual rule: if the task involves images, screenshots, diagrams, UI layout, PDFs with visual layout, or rendered artifacts, the worker MUST use a multimodal-capable model.
+- Model selection: **prefer multimodal-capable model by default** (`spawn_agent` with `model` override). Fall back to parent model only for pure text/code tasks with zero visual component.
+- Visual rule: if the task involves images, screenshots, diagrams, UI layout, PDFs with visual layout, or rendered artifacts, the worker MUST use a multimodal model — no fallback.
+- Context rule: workers should minimize echoed context back to the planner. Return only structured results, paths, and pass/fail summaries.
 - Context rule: workers should minimize echoed context back to the planner. Return only structured results, paths, and pass/fail summaries.
 
 ### 2. Verifier Subagents (review)
 - Purpose: independently verify completion against acceptance criteria.
 - Rule: verifiers are memoryless (`fork_context=false`) and receive only deliverables + criteria.
-- Visual rule: if the task involves visual artifacts, the verifier MUST use a multimodal model.
+- Model selection: **always use multimodal-capable model** (`spawn_agent` with `model` override). Visual artifacts, code diffs, and file structures all benefit from multimodal understanding.
 - Context rule: verifiers must read actual artifacts themselves and must not request full conversation history.
 ### Model Selection Decision Tree
 
 ```
-Task involves visual artifacts?
-|-- NO  -> workers/verifiers inherit parent model
-`-- YES -> runtime detect: is parent model multimodal?
-    |-- YES -> workers/verifiers may inherit parent model
-    `-- NO  -> workers/verifiers MUST use explicit multimodal model override
+Worker task:
+|-- Visual/images/UI/PDF  -> MUST use multimodal model
+|-- Code with preview/rendering -> MUST use multimodal model
+|-- Pure text/code/logic  -> inherit parent model (or multimodal if available)
+`-- Mixed/ambiguous       -> prefer multimodal model
+
+Verifier task:
+`-- ALWAYS use multimodal model (code, files, artifacts all benefit from visual understanding)
 ```
 
 ### Context Minimization Rules
