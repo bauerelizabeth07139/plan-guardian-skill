@@ -131,14 +131,17 @@ End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers)
 
 Use three explicit roles to keep the main loop lightweight:
 
+Use three explicit roles to keep the main loop lightweight:
+
 ### 0. Planner (main loop)
 - Purpose: clarify intent, draft plan, collect acceptances, and coordinate work.
 - Rule: keep the planner context minimal. Do not paste large files, logs, or long diffs into the planner.
-- Rule: when a step is non-trivial, delegate to a Worker subagent.
 - Rule: when a step is non-trivial, delegate to a Worker subagent. NEVER do execution inline in the planner.
 - Rule: the planner MUST NOT self-verify.
 - Rule: the planner response MUST be only the final report after the final gate passes.
 - Rule: use `spawn_agent` for ALL workers. Use `model` override for visual tasks when the parent model is not multimodal.
+
+### 1. Worker Subagents (execution)
 - Purpose: implement, build, fix, edit, inspect files, run tests, and collect artifacts.
 - Default: inherit the parent model when the task is text/code-only.
 - Visual rule: if the task involves images, screenshots, diagrams, UI layout, PDFs with visual layout, or rendered artifacts, the worker MUST use a multimodal-capable model.
@@ -149,7 +152,6 @@ Use three explicit roles to keep the main loop lightweight:
 - Rule: verifiers are memoryless (`fork_context=false`) and receive only deliverables + criteria.
 - Visual rule: if the task involves visual artifacts, the verifier MUST use a multimodal model.
 - Context rule: verifiers must read actual artifacts themselves and must not request full conversation history.
-
 ### Model Selection Decision Tree
 
 ```
