@@ -30,7 +30,7 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 - Identify any implicit requirements the user didn't explicitly state.
 
 ### Step 2: Draft Plan
-- Produce a numbered plan with **at least 3 concrete steps**.
+- Produce a numbered plan with **exactly 7 concrete steps**.
 - Each step must have:
   - A clear deliverable
   - Dependencies on other steps (if any)
@@ -44,13 +44,18 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
   - Binary (PASS or FAIL, no ambiguity)
 - Write criteria BEFORE execution, not after.
 
-### Step 4: Execute
-- Implement the plan step by step.
-- When a step is non-trivial, multi-file, or command-heavy, delegate the work to a Worker subagent instead of doing it inline.
-- Keep the main loop focused on coordination, not on pasting large content or long outputs.
+### Step 4: Execute (MANDATORY subagent delegation)
+- **Delegate ALL non-trivial work to Worker subagents.** The main loop only coordinates.
+- For each plan step, determine if it requires file editing, command execution, or multi-step logic. If YES → spawn a Worker subagent.
+- Worker spawning rules:
+  - Text/code-only tasks → `spawn_agent` with default model (inherits parent)
+  - Visual/image/UI tasks → `spawn_agent` with `model` set to a multimodal-capable model
+  - Each worker receives ONLY: the specific plan step, deliverable description, and relevant file paths
+- Workers execute independently and return structured results (paths created/modified, status, errors).
+- The main loop collects worker results and passes them to verification.
+- **The main loop MUST NOT paste large file contents, long command outputs, or multi-step implementations inline.**
 - Do not proceed to verification until ALL execution is complete.
 - Do not take shortcuts. If the plan says build X, build X completely.
-
 ### Step 5: Per-Step Verification (MANDATORY - uses `spawn_agent`)
 - After execution, for **each** plan step:
   1. Collect the deliverable for that step.
@@ -130,10 +135,10 @@ Use three explicit roles to keep the main loop lightweight:
 - Purpose: clarify intent, draft plan, collect acceptances, and coordinate work.
 - Rule: keep the planner context minimal. Do not paste large files, logs, or long diffs into the planner.
 - Rule: when a step is non-trivial, delegate to a Worker subagent.
+- Rule: when a step is non-trivial, delegate to a Worker subagent. NEVER do execution inline in the planner.
 - Rule: the planner MUST NOT self-verify.
 - Rule: the planner response MUST be only the final report after the final gate passes.
-
-### 1. Worker Subagents (execution)
+- Rule: use `spawn_agent` for ALL workers. Use `model` override for visual tasks when the parent model is not multimodal.
 - Purpose: implement, build, fix, edit, inspect files, run tests, and collect artifacts.
 - Default: inherit the parent model when the task is text/code-only.
 - Visual rule: if the task involves images, screenshots, diagrams, UI layout, PDFs with visual layout, or rendered artifacts, the worker MUST use a multimodal-capable model.
@@ -170,7 +175,9 @@ Task involves visual artifacts?
 3. NEVER reuse a verifier that returned FAIL. Spawn a NEW one after fixing.
 4. NEVER pass conversation history to verifiers. They get deliverables + criteria only.
 5. NEVER assume a step passed without verifier evidence.
-6. NEVER produce a plan with fewer than 3 steps. Every plan must have at least 3 concrete steps.
+6. NEVER produce a plan with fewer than 7 steps. Every plan MUST have exactly 7 concrete steps.
 7. If two final verifiers disagree, spawn a third. If conflict persists, treat as FAIL.
 8. NEVER use default timeout for verifiers. Always set `timeout_ms` explicitly per the timeout table.
-9. If a verifier times out, treat as FAIL, increase timeout by 60000, and retry with a NEW verifier.
+9. NEVER execute non-trivial plan steps inline in the main loop. Always delegate to a Worker subagent.
+10. If a verifier times out, treat as FAIL, increase timeout by 60000, and retry with a NEW verifier.
+
