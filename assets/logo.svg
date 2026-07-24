@@ -1,0 +1,76 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a1a"/>
+      <stop offset="50%" style="stop-color:#1a1a3e"/>
+      <stop offset="100%" style="stop-color:#0d1b2a"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb"/>
+      <stop offset="100%" style="stop-color:#f5576c"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe"/>
+      <stop offset="100%" style="stop-color:#00f2fe"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="glow-strong"><feGaussianBlur stdDeviation="14" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- Hex grid background -->
+  <g stroke="#667eea" stroke-width="0.4" opacity="0.1">
+    <path d="M100,50 L150,25 L200,50 L200,100 L150,125 L100,100Z"/>
+    <path d="M200,50 L250,25 L300,50 L300,100 L250,125 L200,100Z"/>
+    <path d="M300,50 L350,25 L400,50 L400,100 L350,125 L300,100Z"/>
+    <path d="M50,150 L100,125 L150,150 L150,200 L100,225 L50,200Z"/>
+    <path d="M150,150 L200,125 L250,150 L250,200 L200,225 L150,200Z"/>
+    <path d="M250,150 L300,125 L350,150 L350,200 L300,225 L250,200Z"/>
+    <path d="M350,150 L400,125 L450,150 L450,200 L400,225 L350,200Z"/>
+    <path d="M100,250 L150,225 L200,250 L200,300 L150,325 L100,300Z"/>
+    <path d="M200,250 L250,225 L300,250 L300,300 L250,325 L200,300Z"/>
+    <path d="M300,250 L350,225 L400,250 L400,300 L350,325 L300,300Z"/>
+    <path d="M50,350 L100,325 L150,350 L150,400 L100,425 L50,400Z"/>
+    <path d="M150,350 L200,325 L250,350 L250,400 L200,425 L150,400Z"/>
+    <path d="M250,350 L300,325 L350,350 L350,400 L300,425 L250,400Z"/>
+    <path d="M350,350 L400,325 L450,350 L450,400 L400,425 L350,400Z"/>
+  </g>
+  <!-- Shield shape -->
+  <g filter="url(#glow-strong)" transform="translate(256,260)">
+    <path d="M0,-140 L120,-90 L120,40 Q120,120 0,160 Q-120,120 -120,40 L-120,-90Z"
+          fill="none" stroke="url(#shield)" stroke-width="5"/>
+    <path d="M0,-120 L100,-75 L100,35 Q100,105 0,140 Q-100,105 -100,35 L-100,-75Z"
+          fill="url(#shield)" opacity="0.15"/>
+    <!-- Circuit lines inside shield -->
+    <g stroke="url(#cyan)" stroke-width="2" opacity="0.6" filter="url(#glow)">
+      <line x1="0" y1="-80" x2="0" y2="80"/>
+      <line x1="-60" y1="-40" x2="60" y2="-40"/>
+      <line x1="-40" y1="0" x2="40" y2="0"/>
+      <line x1="-50" y1="40" x2="50" y2="40"/>
+      <!-- Nodes -->
+      <circle cx="0" cy="-80" r="4" fill="#4facfe"/>
+      <circle cx="0" cy="-40" r="4" fill="#00f2fe"/>
+      <circle cx="0" cy="0" r="5" fill="#fff"/>
+      <circle cx="0" cy="40" r="4" fill="#00f2fe"/>
+      <circle cx="0" cy="80" r="4" fill="#4facfe"/>
+      <circle cx="-60" cy="-40" r="3" fill="#4facfe"/>
+      <circle cx="60" cy="-40" r="3" fill="#4facfe"/>
+      <circle cx="-40" cy="0" r="3" fill="#00f2fe"/>
+      <circle cx="40" cy="0" r="3" fill="#00f2fe"/>
+    </g>
+    <!-- Central star/check -->
+    <g filter="url(#glow)" opacity="0.9">
+      <path d="M-20,0 L-6,-14 L20,14 L6,-2Z" fill="url(#gold)" transform="scale(2)"/>
+    </g>
+  </g>
+  <!-- Corner accents -->
+  <g filter="url(#glow)" opacity="0.5">
+    <circle cx="60" cy="60" r="3" fill="#667eea"/>
+    <circle cx="452" cy="60" r="3" fill="#f5576c"/>
+    <circle cx="60" cy="452" r="3" fill="#764ba2"/>
+    <circle cx="452" cy="452" r="3" fill="#00f2fe"/>
+  </g>
+</svg>

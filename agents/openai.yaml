@@ -1,9 +1,10 @@
-interface:
+﻿interface:
   display_name: "Plan Guardian"
   short_description: "Rigid planning and verification"
   default_prompt: "Use $plan-guardian to build a strict plan with acceptance criteria, then verify completion with memoryless subagents."
   icon_small: "./assets/plan-guardian-small.svg"
-  icon_large: "./assets/logo.png"
+  icon_large: "./assets/logo.svg"
 policy:
   allow_implicit_invocation: true
+
 

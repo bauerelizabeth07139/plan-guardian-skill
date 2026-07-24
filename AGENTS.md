@@ -1,4 +1,4 @@
-﻿# Repository Instructions for Codex
+# Repository Instructions for Codex
 
 ## Scope
 These instructions apply to every file in this repository.
