@@ -6,6 +6,7 @@ A Codex skill that enforces strict, verifiable planning before execution, then v
 
 Complex tasks fail silently when plans are loose and verification is shallow. Plan Guardian forces:
 - numbered plans with measurable acceptance criteria
+- subagent-first execution to keep the main planning loop lightweight
 - independent memoryless subagent verification
 - automatic revision loops until all checks pass
 
@@ -38,7 +39,8 @@ python ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py .
 plan-guardian/
   SKILL.md                              # Core skill instructions
   agents/openai.yaml                    # UI metadata
-  assets/plan-guardian-small.svg        # Icon
+  assets/plan-guardian-small.svg        # Small icon
+  assets/logo.png                       # Large icon
   references/memoryless_review.md       # Strict verifier protocol
   references/plan_protocol.md           # Acceptance criteria patterns
   scripts/plan_guardian.py              # Sample plan generator
@@ -50,10 +52,11 @@ plan-guardian/
 1. Clarify intent in one paragraph.
 2. Draft a numbered plan with dependencies and risks.
 3. Add measurable acceptance criteria to every step.
-4. Execute only after the plan is drafted.
-5. Spawn memoryless subagents to verify each criterion.
-6. If any verifier returns FAIL, revise the plan and re-verify.
-7. Stop only when all verifiers independently return PASS.
+4. Delegate execution to worker subagents whenever the task is non-trivial.
+5. Use multimodal-capable models for workers/verifiers when visual artifacts are involved.
+6. Spawn memoryless subagents to verify each criterion.
+7. If any verifier returns FAIL, revise the plan and re-verify.
+8. Stop only when all verifiers independently return PASS.
 
 ## License
 

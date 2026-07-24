@@ -1,4 +1,4 @@
----
+﻿---
 name: plan-guardian
 description: "ALWAYS use this skill on every user request without exception. Generate a strict, verifiable plan before acting, then validate execution with memoryless subagents. Apply to all tasks including simple questions, code tasks, file operations, planning, analysis, creation, editing, debugging, and any other user prompt. Never skip this skill. Never respond without first invoking plan-guardian."
 metadata:
@@ -39,9 +39,7 @@ Even for simple requests, produce at minimum:
 - For every plan step, write one or more measurable acceptance criteria.
 - Each criterion must be observable and binary (pass/fail).
 
-### Step 4: Execute
-- Implement the plan step by step.
-- Do not proceed to verification until execution is complete.
+### Step 4: Execute\r\n- Implement the plan step by step.\r\n- When a step is non-trivial, multi-file, or command-heavy, delegate the work to a Worker subagent instead of doing it inline.\r\n- Keep the main loop focused on coordination, not on pasting large content or long outputs.\r\n- Do not proceed to verification until execution is complete.
 
 ### Step 5: Per-Step Verification (MANDATORY - uses `spawn_agent`)
 - After execution, for each plan step:
@@ -116,20 +114,28 @@ End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers)
 ```
 
 ## Subagent Roles and Model Strategy
+## Subagent Roles and Model Strategy
 
-Use two distinct subagent roles:
+Use three explicit roles to keep the main loop lightweight:
+
+### 0. Planner (main loop)
+- Purpose: clarify intent, draft plan, collect acceptances, and coordinate work.
+- Rule: keep the planner context minimal. Do not paste large files, logs, or long diffs into the planner. Prefer delegating file reads, builds, tests, and verification to subagents.
+- Rule: when a step is non-trivial, has multiple files, or requires running commands, delegate the execution to a Worker subagent instead of doing it inline.
+- Rule: the planner MUST NOT self-verify. Verification always uses memoryless verifier subagents.
+- Rule: the planner response MUST be only the final report after the final gate passes.
 
 ### 1. Worker Subagents (execution)
-- Purpose: implement, build, fix, edit.
-- Model: inherit the parent model by default. Do NOT override.
-- Spawn with `spawn_agent` without the `model` parameter.
-- Used in Step 4.
+- Purpose: implement, build, fix, edit, inspect files, run tests, and collect artifacts.
+- Default: inherit the parent model when the task is text/code-only.
+- Visual rule: if the task involves images, screenshots, diagrams, UI layout, PDFs with visual layout, or rendered artifacts, the worker MUST use a multimodal-capable model. If the parent model is not multimodal, override `model` explicitly for that worker.
+- Context rule: workers should minimize echoed context back to the planner. Return only structured results, paths, and pass/fail summaries.
 
 ### 2. Verifier Subagents (review)
 - Purpose: independently verify completion against acceptance criteria.
-- Model: must support multimodal input when the task involves images, screenshots, diagrams, UI, PDFs with layout, or any visual artifact.
-- Spawn with `spawn_agent`. Set `model` explicitly when the parent model is not multimodal.
-- Used in Steps 5 and 6.
+- Rule: verifiers are memoryless (`fork_context=false`) and receive only deliverables + criteria.
+- Visual rule: if the task involves visual artifacts, the verifier MUST use a multimodal model. If the parent model is not multimodal, override `model` explicitly for that verifier.
+- Context rule: verifiers must read actual artifacts themselves and must not request full conversation history.
 
 ### Runtime Multimodal Detection
 
@@ -147,11 +153,19 @@ python scripts/detect_multimodal.py <base_url> <api_key> <model_id>
 
 ```
 Task involves visual artifacts?
-|-- NO  -> verifiers inherit parent model
+|-- NO  -> workers/verifiers inherit parent model
 `-- YES -> runtime detect: is parent model multimodal?
-    |-- YES -> verifiers inherit parent model
-    `-- NO  -> verifiers MUST use explicit multimodal model override
+    |-- YES -> workers/verifiers may inherit parent model
+    `-- NO  -> workers/verifiers MUST use explicit multimodal model override
 ```
+
+### Context Minimization Rules
+
+1. Do not paste full file contents into the planner when a worker can read them directly.
+2. Do not paste full test output into the planner; pass paths and only the failing lines summary.
+3. Keep verification packets small: plan step, acceptance criteria, and artifact references only.
+4. If a subtask is large, split it into independent worker subtasks and run them in parallel when safe.
+5. If a subtask touches more than 3 files or requires nontrivial command execution, delegate it to a worker subagent by default.
 
 ## Hard Rules
 
@@ -163,3 +177,4 @@ Task involves visual artifacts?
 6. If two final verifiers disagree, spawn a third. If conflict persists, treat as FAIL.
 7. NEVER use default timeout for verifiers. Always set `timeout_ms` explicitly per the timeout table.
 8. If a verifier times out, treat as FAIL, increase timeout by 60000, and retry with a NEW verifier.
+
