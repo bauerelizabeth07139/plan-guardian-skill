@@ -76,35 +76,44 @@ flowchart TD
 
 ## 🚀 Quick Start
 
-### Install — System Level (Recommended, Forced)
+There are **two installation levels**. Choose based on how you want the skill to behave.
 
-Copy into the system skills directory so it activates on **every request** automatically:
+### System Level — Auto-activates on every request (Recommended)
 
 ```bash
+# Linux/macOS
 cp -r plan-guardian-skill ~/.codex/skills/.system/plan-guardian
+
+# Windows (PowerShell)
+robocopy plan-guardian-skill "$env:USERPROFILE\.codex\skills\.system\plan-guardian" /E
 ```
 
-System-level skills are loaded by Codex on every request. This is the **forced** mode — no manual invocation needed, no exceptions.
+- Codex loads this on **every request** automatically — no exceptions
+- The 7-step workflow (Step 0 → Step 7) applies to all tasks, including simple questions
+- Skill appears as `plan-guardian` in Codex's system skills list
+- **This is the forced mode — no way to skip it once installed**
 
-### Install — User Level (Optional)
-
-Copy into the user skills directory if you prefer to invoke it selectively:
+### User Level — Manual invocation only
 
 ```bash
+# Linux/macOS
 cp -r plan-guardian-skill ~/.codex/skills/plan-guardian
+
+# Windows (PowerShell)
+robocopy plan-guardian-skill "$env:USERPROFILE\.codex\skills\plan-guardian" /E
 ```
 
-User-level skills can be invoked explicitly with `$plan-guardian` but are **not** automatically activated on every request.
+- **Not** automatically activated — you choose when to use it
+- Invoke explicitly with `$plan-guardian <your task>`
+- Use when you want strict planning only for complex tasks
 
-### Usage
-
-The skill **triggers automatically** on every request — no manual invocation needed. For explicit use:
+### Usage (User Level)
 
 ```
-$plan-guardian <your task>
+$plan-guardian implement a multi-file refactoring with tests
 ```
 
-### Validate
+### Validate Installation
 
 ```bash
 python scripts/validate_skill.py .

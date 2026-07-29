@@ -9,6 +9,45 @@ metadata:
 
 Every request goes through the full 7-step workflow. No shortcuts, no exceptions.
 
+## Installation Levels
+
+### System Level (Recommended — Auto-activates on every request)
+
+```bash
+# Linux/macOS
+cp -r plan-guardian-skill ~/.codex/skills/.system/plan-guardian
+
+# Windows (PowerShell)
+robocopy plan-guardian-skill "$env:USERPROFILE\.codex\skills\.system\plan-guardian" /E
+```
+
+- Loaded by Codex on **every request** automatically
+- No manual invocation needed
+- Skill name in Codex: `plan-guardian` (listed in system skills)
+- **This is the forced mode — the 7-step workflow applies to all tasks without exception**
+
+### User Level (Optional — Manual invocation)
+
+```bash
+# Linux/macOS
+cp -r plan-guardian-skill ~/.codex/skills/plan-guardian
+
+# Windows (PowerShell)
+robocopy plan-guardian-skill "$env:USERPROFILE\.codex\skills\plan-guardian" /E
+```
+
+- **Not** automatically activated on every request
+- Must be explicitly invoked with `$plan-guardian <task>`
+- Use when you want selective planning for complex tasks only
+
+### Verify Installation
+
+```bash
+python scripts/validate_skill.py .
+```
+
+---
+
 ## Trigger Rule
 
 **This skill MUST activate on every single user message.** No exceptions for:
