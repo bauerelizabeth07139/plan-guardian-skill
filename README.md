@@ -1,16 +1,16 @@
-﻿<p align="center">
+<p align="center">
   <img src="./assets/logo.svg" width="120" alt="Plan Guardian"/>
 </p>
 
-<h1 align="center">🛡️ Plan Guardian</h1>
+<h1 align="center">??? Plan Guardian</h1>
 
 <p align="center">
-  <strong>Strict planning · Memoryless verification · Subagent-first execution</strong><br/>
+  <strong>Strict planning �� Memoryless verification �� Subagent-first execution</strong><br/>
   A Codex skill that enforces verifiable planning, then validates completion with independent memoryless subagents.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.1.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-1.2.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -18,19 +18,19 @@
 
 ---
 
-## ✨ Why Plan Guardian?
+## ? Why Plan Guardian?
 
 Complex tasks fail silently when plans are loose and verification is shallow. Plan Guardian eliminates that by forcing a **closed-loop workflow**:
 
-- 🎯 **Strict Planning** — Every request starts with a numbered plan, dependencies, and acceptance criteria
-- 🤖 **Subagent-First** — Main loop stays lightweight; workers and verifiers handle the heavy lifting
-- 🔍 **Memoryless Verification** — Independent subagents verify completion with zero prior context
-- 🧠 **Multimodal-First** — Workers prefer multimodal models; verifiers always use them
-- 🔄 **Re-Planning Protocol** — When verification fails, a new plan is drafted (not blind retry) and re-verified until all pass
+- ?? **Strict Planning** �� Every request starts with a numbered plan, dependencies, and acceptance criteria
+- ?? **Subagent-First** �� Main loop stays lightweight; workers and verifiers handle the heavy lifting
+- ?? **Memoryless Verification** �� Independent subagents verify completion with zero prior context
+- ?? **Multimodal-First** �� Workers prefer multimodal models; verifiers always use them
+- ?? **Re-Planning Protocol** �� When verification fails, a new plan is drafted (not blind retry) and re-verified until all pass
 
 ---
 
-## 🏗️ Architecture
+## ??? Architecture
 
 ```mermaid
 flowchart TD
@@ -43,15 +43,15 @@ flowchart TD
     F -->|FAIL| H["Re-Plan (new 7-step plan)"] --> D
     G -->|Yes| I[Final Gate<br/>2+ Independent Verifiers]
     G -->|No| D
-    I -->|ALL PASS| J[✅ Final Report]
+    I -->|ALL PASS| J[? Final Report]
     I -->|FAIL| H
 ```
 
 ---
 
-## 🚀 Quick Start
+## ?? Quick Start
 
-### Install — System Level (Recommended, Forced)
+### Install �� System Level (Recommended, Forced)
 
 Copy into the system skills directory so it activates on **every request** automatically:
 
@@ -59,9 +59,9 @@ Copy into the system skills directory so it activates on **every request** autom
 cp -r plan-guardian-skill ~/.codex/skills/.system/plan-guardian
 ```
 
-System-level skills are loaded by Codex on every request. This is the **forced** mode — no manual invocation needed, no exceptions.
+System-level skills are loaded by Codex on every request. This is the **forced** mode �� no manual invocation needed, no exceptions.
 
-### Install — User Level (Optional)
+### Install �� User Level (Optional)
 
 Copy into the user skills directory if you prefer to invoke it selectively:
 
@@ -73,7 +73,7 @@ User-level skills can be invoked explicitly with `$plan-guardian` but are **not*
 
 ### Usage
 
-The skill **triggers automatically** on every request — no manual invocation needed. For explicit use:
+The skill **triggers automatically** on every request �� no manual invocation needed. For explicit use:
 
 ```
 $plan-guardian <your task>
@@ -87,7 +87,7 @@ python scripts/validate_skill.py .
 
 ---
 
-## 📋 How It Works
+## ?? How It Works
 
 | Step | What Happens | Who Does It |
 |------|-------------|-------------|
@@ -96,100 +96,100 @@ python scripts/validate_skill.py .
 | **3. Acceptance Criteria** | Binary pass/fail criteria for every step | Main Loop |
 | **4. Execute** | Delegate all steps to Worker subagents | **Worker Subagent** |
 | **5. Per-Step Verification** | Independent memoryless verifier checks each step | **Verifier Subagent** |
-| **6. Final Gate** | ≥2 memoryless verifiers check ALL criteria | **Verifier Subagents** |
+| **6. Final Gate** | ��2 memoryless verifiers check ALL criteria | **Verifier Subagents** |
 | **7. Report** | Present plan, status, evidence, and remediation actions | Main Loop |
 
 ---
 
-## 🧩 Subagent Roles
+## ?? Subagent Roles
 
 ### Planner (Main Loop)
 - Clarifies intent, drafts plan, coordinates execution
-- **Never** pastes large files or logs — delegates to workers
-- **Never** self-verifies — all verification uses spawn_agent
+- **Never** pastes large files or logs �� delegates to workers
+- **Never** self-verifies �� all verification uses spawn_agent
 
 ### Worker Subagents
 - Implement, build, fix, edit, inspect files, run tests
-- **Prefer multimodal model by default** — fall back to parent for pure text/code only
+- **Prefer multimodal model by default** �� fall back to parent for pure text/code only
 - **Visual rule**: MUST use multimodal model for image/UI/PDF tasks
 
 ### Verifier Subagents
 - Independent, memoryless (`fork_context=false`)
 - Receive only: deliverables + acceptance criteria
 - Output: `PASS` or `FAIL` with exact reason
-- **Always use multimodal model** — code, files, and artifacts all benefit from visual understanding
+- **Always use multimodal model** �� code, files, and artifacts all benefit from visual understanding
 
 ---
 
-## 🔧 Model Selection
+## ?? Model Selection
 
 ```
 Task involves visual artifacts?
-├── NO  → Workers/verifiers inherit parent model
-└── YES → Is parent model multimodal?
-    ├── YES → Workers/verifiers may inherit parent model
-    └── NO  → MUST override to explicit multimodal model
+������ NO  �� Workers/verifiers inherit parent model
+������ YES �� Is parent model multimodal?
+    ������ YES �� Workers/verifiers may inherit parent model
+    ������ NO  �� MUST override to explicit multimodal model
 ```
 
 ---
 
-## ⏱️ Timeout Rules
+## ?? Timeout Rules
 
 | Verifier Type | timeout_ms | Retry |
 |---------------|-----------|-------|
 | Per-step (Step 5) | 120,000 (2 min) | +60s each retry |
 | Final gate (Step 6) | 180,000 (3 min) | +60s each retry |
-| Maximum | 360,000 (6 min) | — |
+| Maximum | 360,000 (6 min) | �� |
 
 ---
 
-## 📁 Structure
+## ?? Structure
 
 ```
 plan-guardian/
-├── SKILL.md                              # Core skill instructions
-├── AGENTS.md                             # Repo-level agent guidelines
-├── agents/
-│   └── openai.yaml                       # UI metadata
-├── assets/
-│   ├── plan-guardian-small.svg           # Small icon
-│   └── logo.png                          # Large icon
-├── references/
-│   ├── memoryless_review.md              # Strict verifier protocol
-│   └── plan_protocol.md                  # Acceptance criteria patterns
-├── scripts/
-│   ├── detect_multimodal.py              # Runtime multimodal detection
-│   ├── plan_guardian.py                  # Sample plan generator
-│   └── validate_skill.py                 # Local validator
-├── LICENSE
-└── README.md
+������ SKILL.md                              # Core skill instructions
+������ AGENTS.md                             # Repo-level agent guidelines
+������ agents/
+��   ������ openai.yaml                       # UI metadata
+������ assets/
+��   ������ plan-guardian-small.svg           # Small icon
+��   ������ logo.png                          # Large icon
+������ references/
+��   ������ memoryless_review.md              # Strict verifier protocol
+��   ������ plan_protocol.md                  # Acceptance criteria patterns
+������ scripts/
+��   ������ detect_multimodal.py              # Runtime multimodal detection
+��   ������ plan_guardian.py                  # Sample plan generator
+��   ������ validate_skill.py                 # Local validator
+������ LICENSE
+������ README.md
 ```
 
 ---
 
-## 🛡️ Hard Rules
+## ??? Hard Rules
 
-1. ❌ Never respond to the user without completing the Final Gate (Step 6)
-2. ❌ Never self-verify — all verification uses `spawn_agent` with `fork_context=false`
-3. ❌ Never reuse a verifier that returned FAIL — follow the Re-Planning Protocol
-4. ❌ Never pass conversation history to verifiers — they get deliverables + criteria only
-5. ❌ Never assume a step passed without verifier evidence
-6. ✅ Plan must have **exactly 7 steps** — no shortcuts
-7. ✅ If two final verifiers disagree → spawn a third
-8. ✅ When verification fails → Re-Planning Protocol, never blind retry
-9. ✅ After 3 re-plan cycles → escalate honestly, never silently give up
-10. ✅ If a verifier times out → treat as FAIL, increase timeout by 60s, retry with new verifier
+1. ? Never respond to the user without completing the Final Gate (Step 6)
+2. ? Never self-verify �� all verification uses `spawn_agent` with `fork_context=false`
+3. ? Never reuse a verifier that returned FAIL �� follow the Re-Planning Protocol
+4. ? Never pass conversation history to verifiers �� they get deliverables + criteria only
+5. ? Never assume a step passed without verifier evidence
+6. ? Plan must have **exactly 7 steps** �� no shortcuts
+7. ? If two final verifiers disagree �� spawn a third
+8. ? When verification fails �� Re-Planning Protocol, never blind retry
+9. ? After 3 re-plan cycles �� escalate honestly, never silently give up
+10. ? If a verifier times out �� treat as FAIL, increase timeout by 60s, retry with new verifier
 
 ---
 
-## 📜 License
+## ?? License
 
-MIT — Use it, fork it, improve it.
+MIT �� Use it, fork it, improve it.
 
 ---
 
 <p align="center">
-  <sub>Built for <a href="https://github.com/openai/codex">Codex</a> · Enforcing rigor since 2026</sub>
+  <sub>Built for <a href="https://github.com/openai/codex">Codex</a> �� Enforcing rigor since 2026</sub>
 </p>
 
 

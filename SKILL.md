@@ -1,4 +1,4 @@
-﻿---
+---
 name: plan-guardian
 description: "ALWAYS use this skill on every user request without exception. Generate a strict 7-step verifiable plan before acting, then validate execution with memoryless subagents. Apply to ALL tasks without exception. Never skip any step. Never respond without completing all 7 steps."
 metadata:
