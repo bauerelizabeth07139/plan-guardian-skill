@@ -24,6 +24,31 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 
 **Every step below is MANDATORY. Do not skip any step. Do not self-verify. All verification MUST use `spawn_agent`.**
 
+### Step 0: Detect Model Capabilities (MANDATORY — runs before everything else)
+
+Before any planning begins, determine whether the current model supports multimodal (image) input. This result governs the model selection for ALL workers and verifiers in the entire workflow.
+
+**How to detect:**
+
+1. Spawn a diagnostic subagent with `spawn_agent` (`fork_context=false`).
+2. Instruct it to run: `python scripts/detect_multimodal.py <base_url> <api_key> <model_id>`
+   - If API credentials are not available, the subagent may probe the model by sending a minimal image+text message and checking the response.
+   - If probing is not possible, assume multimodal and note the assumption.
+3. The subagent returns one of:
+   - `MULTIMODAL` — model supports image input
+   - `NOT_MULTIMODAL` — model does not support image input
+   - `UNKNOWN` — could not determine (treat as multimodal for safety)
+
+**Store the result and apply throughout the workflow:**
+
+| Detection Result | Worker Model Strategy | Verifier Model Strategy |
+|------------------|----------------------|------------------------|
+| `MULTIMODAL` | Inherit parent model for all tasks | Inherit parent model |
+| `NOT_MULTIMODAL` | Text/code tasks → inherit parent; Visual tasks → override to multimodal model (e.g., `gpt-5.6-sol`) | Override to multimodal model |
+| `UNKNOWN` | Inherit parent model (assume capable) | Inherit parent model (assume capable) |
+
+**Report the detection result in the final Step 7 report** so the user knows which model strategy was applied.
+
 ### Step 1: Clarify Intent
 - Restate the user request in one paragraph.
 - Identify the core deliverable.
@@ -173,28 +198,36 @@ End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers)
 
 ### 1. Worker Subagents (execution)
 - Purpose: implement, build, fix, edit, inspect files, run tests, and collect artifacts.
-- Model selection: **prefer multimodal-capable model by default** (`spawn_agent` with `model` override). Fall back to parent model only for pure text/code tasks with zero visual component.
-- Visual rule: if the task involves images, screenshots, diagrams, UI layout, PDFs with visual layout, or rendered artifacts, the worker MUST use a multimodal model — no fallback.
+- Model selection: determined by **Step 0 detection result**. If NOT_MULTIMODAL and the task is visual, override to a multimodal model. Otherwise inherit parent model.
+- Visual rule: if Step 0 = NOT_MULTIMODAL and the task involves images, screenshots, diagrams, UI layout, PDFs, or rendered artifacts, the worker MUST use a multimodal model override.
 - Context rule: workers should minimize echoed context back to the planner. Return only structured results, paths, and pass/fail summaries.
 - Context rule: workers should minimize echoed context back to the planner. Return only structured results, paths, and pass/fail summaries.
 
 ### 2. Verifier Subagents (review)
 - Purpose: independently verify completion against acceptance criteria.
 - Rule: verifiers are memoryless (`fork_context=false`) and receive only deliverables + criteria.
-- Model selection: **always use multimodal-capable model** (`spawn_agent` with `model` override). Visual artifacts, code diffs, and file structures all benefit from multimodal understanding.
+- Model selection: determined by **Step 0 detection result**. If NOT_MULTIMODAL, always override to a multimodal model. Otherwise inherit parent model.
 - Context rule: verifiers must read actual artifacts themselves and must not request full conversation history.
 ### Model Selection Decision Tree
 
-```
-Worker task:
-|-- Visual/images/UI/PDF  -> MUST use multimodal model
-|-- Code with preview/rendering -> MUST use multimodal model
-|-- Pure text/code/logic  -> inherit parent model (or multimodal if available)
-`-- Mixed/ambiguous       -> prefer multimodal model
+Model selection is determined by the detection result from **Step 0**. Apply the following rules:
 
-Verifier task:
-`-- ALWAYS use multimodal model (code, files, artifacts all benefit from visual understanding)
 ```
+Step 0 result:
+├── MULTIMODAL
+│   ├── Worker: inherit parent model (already capable)
+│   └── Verifier: inherit parent model (already capable)
+├── NOT_MULTIMODAL
+│   ├── Worker (text/code): inherit parent model
+│   ├── Worker (visual/UI/PDF): override to multimodal model (e.g., gpt-5.6-sol)
+│   └── Verifier: ALWAYS override to multimodal model
+└── UNKNOWN
+    ├── Worker: inherit parent model (assume capable)
+    └── Verifier: inherit parent model (assume capable)
+```
+
+**Visual task keywords** that trigger multimodal override when Step 0 = NOT_MULTIMODAL:
+images, screenshots, diagrams, UI layout, PDFs, charts, rendered output, SVG, canvas, CSS preview
 
 ### Context Minimization Rules
 
@@ -206,7 +239,8 @@ Verifier task:
 
 ## Hard Rules
 
-1. NEVER respond to the user without completing all 7 steps.
+0. NEVER skip Step 0 (model capability detection). The result governs all worker/verifier model selection.
+1. NEVER respond to the user without completing all 7 steps (Steps 1–7, after Step 0).
 2. NEVER self-verify. All verification uses `spawn_agent` with `fork_context=false`.
 3. NEVER reuse a verifier that returned FAIL. Spawn a NEW one after fixing.
 4. NEVER pass conversation history to verifiers. They get deliverables + criteria only.

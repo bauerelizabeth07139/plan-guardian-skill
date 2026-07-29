@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.2.1-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-1.3.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -32,6 +32,7 @@ Plan Guardian is a **Codex skill** that wraps every user request in a strict 7-s
 | **Memoryless Verification** | Independent verifier subagents (with `fork_context=false`) check each step with zero prior context |
 | **Final Gate** | At least 2 independent verifiers check ALL criteria before the response is delivered |
 | **Re-Planning Protocol** | On failure, a new plan is drafted (not blind retry) and re-verified until all pass or 3 cycles exhausted |
+| **Multimodal Detection** | Step 0 probes the model API to determine image support, then applies the result to all worker/verifier model selections |
 
 ### Why Use It?
 
@@ -115,6 +116,7 @@ python scripts/validate_skill.py .
 
 | Step | What Happens | Who Does It |
 |------|-------------|-------------|
+| **0. Detect Model Capabilities** | Probe whether current model supports multimodal (image) input | Diagnostic Subagent |
 | **1. Clarify Intent** | Restate user request in one paragraph | Main Loop |
 | **2. Draft Plan** | Exactly 7 numbered steps with dependencies, risks, and deliverables | Main Loop |
 | **3. Acceptance Criteria** | Binary pass/fail criteria for every step | Main Loop |
@@ -148,11 +150,10 @@ python scripts/validate_skill.py .
 ## 🔧 Model Selection
 
 ```
-Task involves visual artifacts?
-├── NO  → Workers/verifiers inherit parent model
-└── YES → Is parent model multimodal?
-    ├── YES → Workers/verifiers may inherit parent model
-    └── NO  → MUST override to explicit multimodal model
+Step 0 detection result:
+├── MULTIMODAL   → All workers/verifiers inherit parent model
+├── NOT_MULTIMODAL → Visual tasks override to multimodal model; text tasks inherit
+└── UNKNOWN      → Assume multimodal, inherit parent model
 ```
 
 ---
