@@ -27,7 +27,7 @@ After Step 0 detection, apply these rules for ALL subagent spawns:
 
 ## RULE 3: ALWAYS VERIFY WITH SUBAGENTS
 
-After EVERY task completes, you MUST spawn a STRICT verifier subagent. The verifier must perform COMPLETE functional testing with screenshots of EVERY interface.
+After EVERY task completes, you MUST spawn a STRICT verifier subagent. The verifier must perform COMPLETE functional testing with screenshots of each interface.
 
 ```
 multi_agent_v1__spawn_agent(message="You are a STRICT functional verifier. Your job is to BREAK the work, not approve it.
@@ -64,14 +64,14 @@ multi_agent_v1__spawn_agent(message="You are a STRICT functional verifier. Your 
 
 ### Phase 3: FUNCTIONAL TEST & VISUAL CHECK (DO TOGETHER)
 7. RUN the artifact (start server, open page, execute code).
-8. For EACH interface/page/view that exists:
-   - Take a SCREENSHOT
-   - INTERACT with every interactive element (click buttons, submit forms, navigate links)
-   - Take a SCREENSHOT after each interaction
+8. Take ONE screenshot of the initial state (enough to represent the interface).
+9. For EACH interactive element (buttons, links, forms, etc.):
+   - INTERACT with it (click, submit, navigate)
+   - If the page/view CHANGES: take a screenshot of the new state
+   - If the page/view does NOT change: no screenshot needed, just verify the action happened
    - VERIFY the result matches expected behavior
-   - VERIFY visual layout, styling, completeness
-9. CHECK error handling - test with invalid input, missing data, edge cases.
-10. For EACH test: compare actual result to expected result written in Phase 1.
+10. CHECK error handling - test with invalid input, missing data, edge cases.
+11. For EACH test: compare actual result to expected result written in Phase 1.
 
 **Output Format:**
 For each criterion:
@@ -88,7 +88,16 @@ End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria and exact reas
 
 If Step 0 = NOT_MULTIMODAL, add model="<multimodal model>".
 
-## RULE 4: FOLLOW THE 7-STEP WORKFLOW
+## RULE 4: FAIL ¡ú FIX ¡ú RE-VERIFY
+
+When a verifier reports FAIL:
+1. Analyze the failure (read the verifier report)
+2. Spawn a NEW worker to fix the issue
+3. Spawn a NEW verifier to re-verify
+4. Never reuse failed agents
+5. Repeat until ALL PASS or 3 cycles exhausted
+
+## RULE 5: FOLLOW THE 7-STEP WORKFLOW
 
 For EVERY user message, follow these steps:
 
@@ -98,9 +107,9 @@ For EVERY user message, follow these steps:
 4. **Step 3**: Define acceptance criteria (include functional/interactive checks)
 5. **Step 4**: Spawn worker subagents (text¡úLLM, visual¡úmultimodal)
 6. **Step 5**: Spawn verifier subagents (always multimodal when available)
-7. **Step 6**: Re-plan if verifiers fail
+7. **Step 6**: Re-plan if verifiers fail (FAIL ¡ú fix ¡ú re-verify)
 8. **Step 7**: Final report with all step statuses
 
-## RULE 5: NEVER SELF-VERIFY
+## RULE 6: NEVER SELF-VERIFY
 
 You MUST NEVER verify your own work. ALL verification must be done by spawned subagents with fork_context=false.
