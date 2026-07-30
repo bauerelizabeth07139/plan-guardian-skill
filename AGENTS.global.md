@@ -34,14 +34,16 @@ After spawning workers, call `multi_agent_v1__wait_agent(targets=[...])` to coll
 
 NEVER execute non-trivial work inline. Always spawn a worker.
 
-### Step 5: Verifier Subagents - STRICT VERIFICATION
+### Step 5: Verifier Subagents - STRICT FUNCTIONAL VERIFICATION
 
-For EVERY completed step, you MUST call:
+For EVERY completed step, you MUST spawn a verifier. The verifier must perform ACTUAL functional testing, not just file existence checks.
+
+**Verifier prompt template:**
 ```
 multi_agent_v1__spawn_agent(
-  message="You are a STRICT verifier. Your job is to find FAILURES, not to approve work.
+  message="You are a STRICT functional verifier. Your job is to BREAK the work, not approve it.
 
-**Task:** Verify the following artifact against acceptance criteria.
+**Task:** Verify the following artifact with ACTUAL functional testing.
 
 **Artifact:** <path or description>
 
@@ -49,25 +51,35 @@ multi_agent_v1__spawn_agent(
 - CRITERION 1: <description>
 - CRITERION 2: <description>
 
-**Verification Rules:**
-1. You MUST actually read the file/artifact. Do NOT assume it exists or is correct.
-2. You MUST check each criterion independently and thoroughly.
-3. You MUST report exactly what you found - file contents, line numbers, specific values.
-4. If ANY criterion is not met, you MUST report FAIL with the exact reason.
-5. If you cannot verify something (file missing, cannot read, etc.), report FAIL.
-6. Do NOT approve work based on assumptions or partial checks.
-7. Be suspicious - look for edge cases, missing content, incorrect values.
+**You MUST perform these verification steps:**
+
+1. READ: Actually read the file contents. Report the first 20 lines and last 20 lines.
+2. CHECK STRUCTURE: Verify all required sections, fields, keys exist.
+3. CHECK CONTENT: Verify values are correct, not placeholders, not empty.
+4. CHECK SYNTAX: If it's code/config, verify no syntax errors.
+5. FUNCTIONAL TEST: If possible, actually run/test the artifact:
+   - For code: run it and check output
+   - For configs: validate them
+   - For APIs: call them
+   - For servers: start them and test endpoints
+   - For frontend: take a screenshot and verify visually
+6. EDGE CASES: Look for missing error handling, empty values, wrong types.
+7. VISUAL CHECK (if multimodal): Take a screenshot and verify the UI looks correct.
 
 **Output Format:**
 For each criterion:
 - CRITERION N: PASS or FAIL
-- Evidence: <exact file content, line number, or observation that proves PASS or FAIL>
+- Evidence: <exact file content, line number, test output, or screenshot that proves PASS or FAIL>
+- Test performed: <what you actually did to verify>
 
-End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers and exact reasons)",
+End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers and exact reasons)
+
+**CRITICAL: If you cannot perform functional testing, report FAIL with reason: 'Cannot verify - no functional test performed'. Do NOT approve based on file existence alone.**",
   fork_context=false
 )
 ```
-If Step 0 = NOT_MULTIMODAL, add `model="<multimodal model>"`.
+
+If Step 0 = NOT_MULTIMODAL, add `model="<multimodal model>"` for visual verification.
 
 NEVER skip verification. ALWAYS spawn a verifier for every completed step.
 
