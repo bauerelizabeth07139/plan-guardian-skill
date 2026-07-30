@@ -94,7 +94,7 @@ When a verifier reports FAIL, you MUST follow the full fix cycle:
 2. **Plan**: Create a fix plan with specific steps to address each failure.
 3. **Fix**: Spawn a NEW worker subagent to execute the fix plan.
 4. **Verify**: Spawn a NEW verifier subagent to re-verify. The verifier follows the same strict rules (Phase 1-3).
-5. **Repeat**: If the new verifier reports FAIL, go back to step 1. Maximum 3 cycles.
+5. **Repeat**: If the new verifier reports FAIL, go back to step 1. Maximum 5 cycles.
 6. **Escalate**: If still failing after 3 cycles, report to user with all failure details.
 
 **Never reuse failed agents. Always spawn new ones.**
