@@ -23,7 +23,6 @@ After Step 0 detection, apply these rules for ALL subagent spawns:
 **Verifiers:**
 - ALWAYS use multimodal model when available (Step 0 = MULTIMODAL or UNKNOWN ¡ú inherit parent)
 - When Step 0 = NOT_MULTIMODAL ¡ú spawn WITH model="<multimodal model>"
-- Verifiers benefit from multimodal even for code: they can screenshot UIs, inspect visual output, verify rendered artifacts
 
 ## RULE 3: ALWAYS VERIFY WITH SUBAGENTS
 
@@ -39,7 +38,6 @@ multi_agent_v1__spawn_agent(message="You are a STRICT functional verifier. Your 
 **Acceptance Criteria (WRITE THESE FIRST - DO NOT CHANGE LATER):**
 - CRITERION 1: <description of expected behavior>
 - CRITERION 2: <description of expected behavior>
-- CRITERION 3: <description of expected behavior>
 ...
 
 **CRITICAL RULE: You MUST write down your expected results BEFORE testing. Do NOT change expectations after seeing actual results. If actual differs from expected, report FAIL.**
@@ -88,14 +86,18 @@ End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria and exact reas
 
 If Step 0 = NOT_MULTIMODAL, add model="<multimodal model>".
 
-## RULE 4: FAIL ¡ú FIX ¡ú RE-VERIFY
+## RULE 4: FAIL ¡ú PLAN ¡ú FIX ¡ú VERIFY
 
-When a verifier reports FAIL:
-1. Analyze the failure (read the verifier report)
-2. Spawn a NEW worker to fix the issue
-3. Spawn a NEW verifier to re-verify
-4. Never reuse failed agents
-5. Repeat until ALL PASS or 3 cycles exhausted
+When a verifier reports FAIL, you MUST follow the full fix cycle:
+
+1. **Analyze**: Read the verifier report. Identify exactly what failed and why.
+2. **Plan**: Create a fix plan with specific steps to address each failure.
+3. **Fix**: Spawn a NEW worker subagent to execute the fix plan.
+4. **Verify**: Spawn a NEW verifier subagent to re-verify. The verifier follows the same strict rules (Phase 1-3).
+5. **Repeat**: If the new verifier reports FAIL, go back to step 1. Maximum 3 cycles.
+6. **Escalate**: If still failing after 3 cycles, report to user with all failure details.
+
+**Never reuse failed agents. Always spawn new ones.**
 
 ## RULE 5: FOLLOW THE 7-STEP WORKFLOW
 
@@ -107,7 +109,7 @@ For EVERY user message, follow these steps:
 4. **Step 3**: Define acceptance criteria (include functional/interactive checks)
 5. **Step 4**: Spawn worker subagents (text¡úLLM, visual¡úmultimodal)
 6. **Step 5**: Spawn verifier subagents (always multimodal when available)
-7. **Step 6**: Re-plan if verifiers fail (FAIL ¡ú fix ¡ú re-verify)
+7. **Step 6**: If FAIL ¡ú plan fix ¡ú spawn new worker ¡ú spawn new verifier (repeat up to 3 times)
 8. **Step 7**: Final report with all step statuses
 
 ## RULE 6: NEVER SELF-VERIFY
