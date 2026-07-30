@@ -24,94 +24,167 @@ After Step 0 detection, apply these rules for ALL subagent spawns:
 - ALWAYS use multimodal model when available (Step 0 = MULTIMODAL or UNKNOWN ¡ú inherit parent)
 - When Step 0 = NOT_MULTIMODAL ¡ú spawn WITH model="<multimodal model>"
 
-## RULE 3: ALWAYS VERIFY WITH SUBAGENTS
+## RULE 3: CONTEXT MANAGEMENT - 258K LIMIT
 
-After EVERY task completes, you MUST spawn a STRICT verifier subagent. The verifier must perform COMPLETE functional testing with screenshots of each interface.
+Each subagent has a 258k token context limit. Do NOT get close to this limit. Context compression causes inaccuracy.
 
+**Before spawning any subagent, estimate context needed:**
+- Small task (read 1-2 files, simple check): OK to use 1 subagent
+- Medium task (read 3-5 files, multiple checks): Split into 2-3 subagents
+- Large task (read 6+ files, complex verification): Split into 4+ subagents
+
+**When reading files:**
+- Do NOT paste entire file contents into one subagent
+- Split file reading across multiple subagents (each reads a subset)
+- Each subagent returns a SUMMARY, not full file contents
+- Pass summaries to the next subagent, not raw content
+
+## RULE 4: ALWAYS VERIFY WITH SUBAGENTS - 3 PHASES, 3 SUBAGENTS
+
+Verification is split into 3 phases. Each phase uses a NEW subagent. Each subagent receives ONLY:
+- The acceptance criteria (pre-written, not changed)
+- The previous phase summary (if applicable)
+- Necessary instructions
+
+**Phase 1: READ & STRUCTURE (subagent 1)**
 ```
-multi_agent_v1__spawn_agent(message="You are a STRICT functional verifier. Your job is to BREAK the work, not approve it.
+multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 1: READ & STRUCTURE.
 
-**Task:** Verify the following artifact with COMPLETE functional testing.
+**Artifact:** <path>
 
-**Artifact:** <path or description>
+**Acceptance Criteria (DO NOT CHANGE):**
+- CRITERION 1: <description>
+- CRITERION 2: <description>
 
-**Acceptance Criteria (WRITE THESE FIRST - DO NOT CHANGE LATER):**
-- CRITERION 1: <description of expected behavior>
-- CRITERION 2: <description of expected behavior>
-...
-
-**CRITICAL RULE: You MUST write down your expected results BEFORE testing. Do NOT change expectations after seeing actual results. If actual differs from expected, report FAIL.**
-
-**You MUST perform ALL of these checks in order:**
-
-### Phase 1: READ & STRUCTURE
-1. READ the actual file contents completely. Report structure and key sections.
+**Your job:**
+1. READ the file contents completely.
 2. CHECK all required fields, sections, keys, imports exist and are non-empty.
-3. CHECK values are correct - not placeholders, not TODO, not empty strings, not null.
+3. CHECK values are correct - not placeholders, not TODO, not empty strings.
+4. Report structure and key sections.
 
-### Phase 2: SYNTAX & CONNECTIONS
-4. CHECK syntax - no errors in code, configs, JSON, HTML, CSS, etc.
-5. CHECK connections/bindings - for any interactive element:
+**Output:**
+- For each criterion: PASS or FAIL with exact evidence (line numbers, values)
+- Summary of file structure for Phase 2
+
+CRITICAL: Do NOT check syntax or functionality. Only check structure.", fork_context=false)
+```
+
+If reading many files, split into multiple Phase 1 subagents:
+```
+multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 1a: READ FILES 1-3.
+
+**Files:** <list of 3 files>
+
+**What to check in each file:**
+- Required sections/fields exist
+- Values are correct, not placeholders
+- Report key structure
+
+**Output:** Summary for each file (structure, key values, any issues found).", fork_context=false)
+
+multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 1b: READ FILES 4-6.
+
+**Files:** <list of 3 files>
+
+**What to check in each file:**
+- Required sections/fields exist
+- Values are correct, not placeholders
+- Report key structure
+
+**Output:** Summary for each file (structure, key values, any issues found).", fork_context=false)
+```
+
+**Phase 2: SYNTAX & CONNECTIONS (subagent 2)**
+```
+multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 2: SYNTAX & CONNECTIONS.
+
+**Artifact:** <path>
+
+**Phase 1 Summary:** <summary from Phase 1 subagent>
+
+**Acceptance Criteria (DO NOT CHANGE):**
+- CRITERION 1: <description>
+- CRITERION 2: <description>
+
+**Your job:**
+1. CHECK syntax - no errors in code, configs, JSON, HTML, CSS.
+2. CHECK connections/bindings:
    - Buttons must have click handlers or form actions
    - Event listeners must be bound to actual elements
    - API calls must have correct endpoints and error handling
    - Imports must reference existing modules
    - Routes must be defined and connected
    - State changes must trigger re-renders or updates
-6. CHECK completeness - no missing pieces, no stubs, no TODOs, no placeholder content.
+3. CHECK completeness - no stubs, no TODOs, no placeholder content.
 
-### Phase 3: FUNCTIONAL TEST & VISUAL CHECK (DO TOGETHER)
-7. RUN the artifact (start server, open page, execute code).
-8. Take ONE screenshot of the initial state (enough to represent the interface).
-9. For EACH interactive element (buttons, links, forms, etc.):
-   - INTERACT with it (click, submit, navigate)
-   - If the page/view CHANGES: take a screenshot of the new state
-   - If the page/view does NOT change: no screenshot needed, just verify the action happened
-   - VERIFY the result matches expected behavior
-10. CHECK error handling - test with invalid input, missing data, edge cases.
-11. For EACH test: compare actual result to expected result written in Phase 1.
+**Output:**
+- For each criterion: PASS or FAIL with exact evidence
+- Summary of syntax and connection status for Phase 3
 
-**Output Format:**
-For each criterion:
-- CRITERION N: PASS or FAIL
-- Expected: <what you wrote before testing>
-- Actual: <what actually happened>
-- Evidence: <screenshot, file content, test output>
-- Test performed: <what you did to verify>
-
-End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria and exact reasons)
-
-**CRITICAL: If you cannot perform functional testing, report FAIL. Do NOT approve based on partial checks.**", fork_context=false)
+CRITICAL: Do NOT run the code. Only check syntax and connections.", fork_context=false)
 ```
 
-If Step 0 = NOT_MULTIMODAL, add model="<multimodal model>".
+**Phase 3: FUNCTIONAL TEST & VISUAL CHECK (subagent 3)**
+```
+multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 3: FUNCTIONAL TEST & VISUAL CHECK.
 
-## RULE 4: FAIL ¡ú PLAN ¡ú FIX ¡ú VERIFY
+**Artifact:** <path>
 
-When a verifier reports FAIL, you MUST follow the full fix cycle:
+**Phase 1 Summary:** <summary from Phase 1>
+**Phase 2 Summary:** <summary from Phase 2>
 
+**Acceptance Criteria (DO NOT CHANGE):**
+- CRITERION 1: <description>
+- CRITERION 2: <description>
+
+**Your job:**
+1. RUN the artifact (start server, open page, execute code).
+2. Take ONE screenshot of the initial state.
+3. For EACH interactive element (buttons, links, forms):
+   - INTERACT with it (click, submit, navigate)
+   - If page CHANGES: take screenshot of new state
+   - If page does NOT change: just verify action happened
+   - VERIFY result matches expected behavior
+4. CHECK error handling - test with invalid input, edge cases.
+5. For EACH test: compare actual result to expected.
+
+**Output:**
+- For each criterion: PASS or FAIL with exact evidence
+- Screenshots of each interface
+- VERDICT: ALL PASS or VERDICT: FAIL with reasons
+
+CRITICAL: If you cannot functional test, report FAIL.", fork_context=false)
+```
+
+**If many interactive elements, split into multiple Phase 3 subagents:**
+- One subagent per group of related interactions
+- Each receives only the relevant criteria and previous summaries
+
+## RULE 5: FAIL ¡ú PLAN ¡ú FIX ¡ú VERIFY
+
+When a verifier reports FAIL:
 1. **Analyze**: Read the verifier report. Identify exactly what failed and why.
 2. **Plan**: Create a fix plan with specific steps to address each failure.
 3. **Fix**: Spawn a NEW worker subagent to execute the fix plan.
-4. **Verify**: Spawn a NEW verifier subagent to re-verify. The verifier follows the same strict rules (Phase 1-3).
-5. **Repeat**: If the new verifier reports FAIL, go back to step 1. Maximum 5 cycles.
-6. **Escalate**: If still failing after 3 cycles, report to user with all failure details.
+4. **Verify**: Spawn NEW verifier subagents (Phase 1-3) to re-verify.
+5. **Repeat**: If still FAIL, go back to step 1. Maximum 5 cycles.
+6. **Escalate**: If still failing after 5 cycles, report to user.
 
 **Never reuse failed agents. Always spawn new ones.**
 
-## RULE 5: FOLLOW THE 7-STEP WORKFLOW
+## RULE 6: FOLLOW THE 7-STEP WORKFLOW
 
 For EVERY user message, follow these steps:
 
 1. **Step 0**: Spawn diagnostic subagent to detect multimodal capabilities
 2. **Step 1**: Clarify intent
 3. **Step 2**: Draft exactly 7 numbered steps
-4. **Step 3**: Define acceptance criteria (include functional/interactive checks)
+4. **Step 3**: Define acceptance criteria (pre-written, not changed later)
 5. **Step 4**: Spawn worker subagents (text¡úLLM, visual¡úmultimodal)
-6. **Step 5**: Spawn verifier subagents (always multimodal when available)
-7. **Step 6**: If FAIL ¡ú plan fix ¡ú spawn new worker ¡ú spawn new verifier (repeat up to 3 times)
+6. **Step 5**: Spawn verifier subagents (3 phases = 3+ subagents, context-aware)
+7. **Step 6**: If FAIL ¡ú plan fix ¡ú spawn new worker ¡ú spawn new verifiers (repeat up to 5 times)
 8. **Step 7**: Final report with all step statuses
 
-## RULE 6: NEVER SELF-VERIFY
+## RULE 7: NEVER SELF-VERIFY
 
 You MUST NEVER verify your own work. ALL verification must be done by spawned subagents with fork_context=false.
