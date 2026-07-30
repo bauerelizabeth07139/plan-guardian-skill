@@ -27,7 +27,7 @@ After Step 0 detection, apply these rules for ALL subagent spawns:
 
 ## RULE 3: ALWAYS VERIFY WITH SUBAGENTS
 
-After EVERY task completes, you MUST spawn a STRICT verifier subagent. The verifier must perform COMPLETE functional testing, not partial checks.
+After EVERY task completes, you MUST spawn a STRICT verifier subagent. The verifier must perform COMPLETE functional testing with screenshots of EVERY interface.
 
 ```
 multi_agent_v1__spawn_agent(message="You are a STRICT functional verifier. Your job is to BREAK the work, not approve it.
@@ -36,17 +36,24 @@ multi_agent_v1__spawn_agent(message="You are a STRICT functional verifier. Your 
 
 **Artifact:** <path or description>
 
-**Acceptance Criteria:**
-- CRITERION 1: <description>
-- CRITERION 2: <description>
+**Acceptance Criteria (WRITE THESE FIRST - DO NOT CHANGE LATER):**
+- CRITERION 1: <description of expected behavior>
+- CRITERION 2: <description of expected behavior>
+- CRITERION 3: <description of expected behavior>
+...
 
-**You MUST perform ALL of these checks:**
+**CRITICAL RULE: You MUST write down your expected results BEFORE testing. Do NOT change expectations after seeing actual results. If actual differs from expected, report FAIL.**
 
+**You MUST perform ALL of these checks in order:**
+
+### Phase 1: READ & STRUCTURE
 1. READ the actual file contents completely. Report structure and key sections.
 2. CHECK all required fields, sections, keys, imports exist and are non-empty.
 3. CHECK values are correct - not placeholders, not TODO, not empty strings, not null.
+
+### Phase 2: SYNTAX & CONNECTIONS
 4. CHECK syntax - no errors in code, configs, JSON, HTML, CSS, etc.
-5. CHECK connections/bindings - for any interactive element (buttons, links, forms, event handlers, callbacks, API calls, imports), verify they are actually connected and functional:
+5. CHECK connections/bindings - for any interactive element:
    - Buttons must have click handlers or form actions
    - Event listeners must be bound to actual elements
    - API calls must have correct endpoints and error handling
@@ -54,20 +61,25 @@ multi_agent_v1__spawn_agent(message="You are a STRICT functional verifier. Your 
    - Routes must be defined and connected
    - State changes must trigger re-renders or updates
 6. CHECK completeness - no missing pieces, no stubs, no TODOs, no placeholder content.
-7. CHECK error handling - what happens on failure, missing data, invalid input?
-8. FUNCTIONAL TEST - actually run/test the artifact:
-   - For code: run it and check output
-   - For configs: validate them
-   - For APIs: call them and check responses
-   - For servers: start them and test endpoints
-   - For UIs: interact with elements, click buttons, submit forms
-9. VISUAL CHECK (if multimodal): take screenshots and verify layout, styling, completeness.
+
+### Phase 3: FUNCTIONAL TEST & VISUAL CHECK (DO TOGETHER)
+7. RUN the artifact (start server, open page, execute code).
+8. For EACH interface/page/view that exists:
+   - Take a SCREENSHOT
+   - INTERACT with every interactive element (click buttons, submit forms, navigate links)
+   - Take a SCREENSHOT after each interaction
+   - VERIFY the result matches expected behavior
+   - VERIFY visual layout, styling, completeness
+9. CHECK error handling - test with invalid input, missing data, edge cases.
+10. For EACH test: compare actual result to expected result written in Phase 1.
 
 **Output Format:**
 For each criterion:
 - CRITERION N: PASS or FAIL
-- Evidence: <exact file content, line number, test output, or screenshot>
-- Test performed: <what you actually did to verify>
+- Expected: <what you wrote before testing>
+- Actual: <what actually happened>
+- Evidence: <screenshot, file content, test output>
+- Test performed: <what you did to verify>
 
 End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria and exact reasons)
 
