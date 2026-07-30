@@ -22,8 +22,37 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 4. NEVER assume a step passed without verifier evidence.
 5. NEVER produce a plan with fewer than 7 steps.
 6. When verification fails, revise the plan before retrying.
+7. Verifier subagents MUST always be spawned. No exceptions.
+8. Worker subagents SHOULD be spawned for all non-trivial steps to minimize main-loop context.
 
 ## Required Workflow
+
+### Step 0: Detect Model Capabilities
+
+Before any planning, determine which models support multimodal (image) input.
+
+**How to detect:**
+
+Spawn a diagnostic subagent:
+```
+multi_agent_v1__spawn_agent(
+  message="Run this command and report the output: python <skill_dir>/scripts/detect_multimodal.py <base_url> <api_key> <model_id>
+If you cannot access API credentials, try sending a minimal image+text message to the model and check if it responds.
+Report one of: MULTIMODAL, NOT_MULTIMODAL, or UNKNOWN.",
+  fork_context=false
+)
+```
+
+**Store the result. It governs ALL worker/verifier model selection below.**
+
+| Detection Result | Worker Strategy | Verifier Strategy |
+|------------------|----------------|-------------------|
+| MULTIMODAL | Text/code tasks: inherit parent. Visual tasks: inherit parent. | ALWAYS inherit parent (multimodal) |
+| NOT_MULTIMODAL | Text/code tasks: inherit parent. Visual tasks: override to multimodal model. | ALWAYS override to multimodal model |
+| UNKNOWN | Inherit parent (assume capable) | ALWAYS override to multimodal model (safety) |
+
+**Visual task keywords** that require multimodal worker when NOT_MULTIMODAL:
+images, screenshots, diagrams, UI layout, PDFs, charts, rendered output, SVG, canvas, CSS preview
 
 ### Step 1: Clarify Intent
 - Restate the user request in one paragraph.
@@ -40,42 +69,48 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 - Each criterion must be observable and binary (PASS or FAIL).
 
 ### Step 4: Execute via Worker Subagents
-**This step is MANDATORY. You MUST spawn subagents for execution.**
 
-For each plan step that involves file editing, command execution, or multi-step logic, you MUST call the tool `multi_agent_v1__spawn_agent` to create a Worker subagent. Do NOT execute work inline.
+**Spawn workers for all non-trivial steps.** This reduces main-loop context and keeps the planner focused on coordination.
 
-**Required tool call for each worker:**
+For each plan step that involves file editing, command execution, or multi-step logic, call `multi_agent_v1__spawn_agent`.
 
+**Text/code worker (non-visual tasks):**
 ```
 multi_agent_v1__spawn_agent(
-  message="<specific task instructions for this worker>",
+  message="<specific task instructions>",
   fork_context=false
 )
 ```
 
-**Rules:**
-- Spawn one worker per plan step (or group related steps).
-- Each worker receives ONLY: the specific plan step, deliverable description, and relevant file paths.
-- Workers execute independently and return structured results.
-- After spawning workers, call `multi_agent_v1__wait_agent(targets=["<worker1_id>", "<worker2_id>"])` to collect results.
-- If a worker returns errors, fix the issue and spawn a NEW worker (do not reuse failed ones).
-
-**Example: spawning two workers in parallel, then waiting:**
-
+**Multimodal worker (visual tasks, only when Step 0 = NOT_MULTIMODAL):**
 ```
-multi_agent_v1__spawn_agent(message="Step 1: Create file X at path Y with content Z", fork_context=false)
-multi_agent_v1__spawn_agent(message="Step 2: Run tests in directory A and report pass/fail", fork_context=false)
+multi_agent_v1__spawn_agent(
+  message="<specific task instructions>",
+  fork_context=false,
+  model="<multimodal model, e.g. gpt-5.6-sol>"
+)
+```
 
-multi_agent_v1__wait_agent(targets=["<worker1_id>", "<worker2_id>"])
+**Rules:**
+- Spawn one worker per plan step (or group small related steps).
+- Each worker receives ONLY: the plan step, deliverable description, and relevant file paths.
+- After spawning workers, call `multi_agent_v1__wait_agent(targets=[...])` to collect results.
+- If a worker fails, fix the issue and spawn a NEW worker.
+
+**Example parallel spawn:**
+```
+multi_agent_v1__spawn_agent(message="Step 1: Create file X with content Z", fork_context=false)
+multi_agent_v1__spawn_agent(message="Step 2: Run tests in directory A", fork_context=false)
+multi_agent_v1__wait_agent(targets=["<id1>", "<id2>"])
 ```
 
 ### Step 5: Verify via Verifier Subagents
-**This step is MANDATORY. You MUST spawn verifiers.**
 
-For each completed plan step, call `multi_agent_v1__spawn_agent` to create a memoryless Verifier subagent.
+**Verification is MANDATORY. You MUST spawn a verifier for every completed step.**
 
-**Required tool call for each verifier:**
+Verifier subagents MUST use a multimodal model when available (see Step 0 table).
 
+**Standard verifier (when MULTIMODAL or UNKNOWN):**
 ```
 multi_agent_v1__spawn_agent(
   message="Verify the following:
@@ -88,6 +123,16 @@ multi_agent_v1__spawn_agent(
 
 Read the actual files/artifacts. For each criterion, report PASS or FAIL with reason. End with: VERDICT: ALL PASS or VERDICT: FAIL",
   fork_context=false
+)
+```
+
+**Multimodal verifier (when NOT_MULTIMODAL, MUST override):**
+```
+multi_agent_v1__spawn_agent(
+  message="Verify the following:
+[...same as above...]",
+  fork_context=false,
+  model="<multimodal model, e.g. gpt-5.6-sol>"
 )
 ```
 
@@ -109,3 +154,4 @@ Read the actual files/artifacts. For each criterion, report PASS or FAIL with re
 - List all plan steps and their verification status (PASS/FAIL).
 - List any files changed or artifacts created.
 - Report the overall verdict: ALL PASS or FAIL (with details).
+- Report the Step 0 detection result and which model strategy was applied.
