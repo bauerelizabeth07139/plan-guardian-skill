@@ -34,12 +34,36 @@ After spawning workers, call `multi_agent_v1__wait_agent(targets=[...])` to coll
 
 NEVER execute non-trivial work inline. Always spawn a worker.
 
-### Step 5: Verifier Subagents
+### Step 5: Verifier Subagents - STRICT VERIFICATION
 
 For EVERY completed step, you MUST call:
 ```
 multi_agent_v1__spawn_agent(
-  message="Verify the following:\n\n**Artifact:** <path>\n\n**Acceptance Criteria:**\n- CRITERION 1: <description>\n\nRead the actual artifact. Report PASS or FAIL with reason. End with: VERDICT: ALL PASS or VERDICT: FAIL",
+  message="You are a STRICT verifier. Your job is to find FAILURES, not to approve work.
+
+**Task:** Verify the following artifact against acceptance criteria.
+
+**Artifact:** <path or description>
+
+**Acceptance Criteria:**
+- CRITERION 1: <description>
+- CRITERION 2: <description>
+
+**Verification Rules:**
+1. You MUST actually read the file/artifact. Do NOT assume it exists or is correct.
+2. You MUST check each criterion independently and thoroughly.
+3. You MUST report exactly what you found - file contents, line numbers, specific values.
+4. If ANY criterion is not met, you MUST report FAIL with the exact reason.
+5. If you cannot verify something (file missing, cannot read, etc.), report FAIL.
+6. Do NOT approve work based on assumptions or partial checks.
+7. Be suspicious - look for edge cases, missing content, incorrect values.
+
+**Output Format:**
+For each criterion:
+- CRITERION N: PASS or FAIL
+- Evidence: <exact file content, line number, or observation that proves PASS or FAIL>
+
+End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers and exact reasons)",
   fork_context=false
 )
 ```
