@@ -42,59 +42,57 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 ### Step 4: Execute via Worker Subagents
 **This step is MANDATORY. You MUST spawn subagents for execution.**
 
-For each plan step that involves file editing, command execution, or multi-step logic, you MUST call `multi_agent_v1__spawn_agent` to create a Worker subagent. Do NOT execute work inline.
+For each plan step that involves file editing, command execution, or multi-step logic, you MUST call the tool `multi_agent_v1__spawn_agent` to create a Worker subagent. Do NOT execute work inline.
 
-**Required tool call pattern for each worker:**
+**Required tool call for each worker:**
 
-```json
-{
-  "tool": "multi_agent_v1__spawn_agent",
-  "input": {
-    "message": "<specific task instructions for this worker>",
-    "fork_context": false
-  }
-}
+```
+multi_agent_v1__spawn_agent(
+  message="<specific task instructions for this worker>",
+  fork_context=false
+)
 ```
 
 **Rules:**
 - Spawn one worker per plan step (or group related steps).
 - Each worker receives ONLY: the specific plan step, deliverable description, and relevant file paths.
 - Workers execute independently and return structured results.
-- After spawning workers, use `multi_agent_v1__wait_agent` to collect results.
+- After spawning workers, call `multi_agent_v1__wait_agent(targets=["<worker1_id>", "<worker2_id>"])` to collect results.
 - If a worker returns errors, fix the issue and spawn a NEW worker (do not reuse failed ones).
 
-**Example: spawning two workers in parallel:**
+**Example: spawning two workers in parallel, then waiting:**
 
-First, spawn both workers (make two tool calls in the same block):
 ```
-Call multi_agent_v1__spawn_agent with fork_context=false, message="Step 1: Create file X at path Y with content Z"
-Call multi_agent_v1__spawn_agent with fork_context=false, message="Step 2: Run tests in directory A and report pass/fail"
-```
+multi_agent_v1__spawn_agent(message="Step 1: Create file X at path Y with content Z", fork_context=false)
+multi_agent_v1__spawn_agent(message="Step 2: Run tests in directory A and report pass/fail", fork_context=false)
 
-Then wait for results:
-```
-Call multi_agent_v1__wait_agent with targets=["<worker1_id>", "<worker2_id>"]
+multi_agent_v1__wait_agent(targets=["<worker1_id>", "<worker2_id>"])
 ```
 
 ### Step 5: Verify via Verifier Subagents
 **This step is MANDATORY. You MUST spawn verifiers.**
 
-For each completed plan step, spawn a memoryless Verifier subagent to check acceptance criteria.
+For each completed plan step, call `multi_agent_v1__spawn_agent` to create a memoryless Verifier subagent.
 
-**Required tool call pattern for each verifier:**
+**Required tool call for each verifier:**
 
-```json
-{
-  "tool": "multi_agent_v1__spawn_agent",
-  "input": {
-    "message": "Verify the following:\n\n**Artifact:** <path or description>\n\n**Acceptance Criteria:**\n- CRITERION 1: <description>\n- CRITERION 2: <description>\n\nRead the actual files/artifacts. For each criterion, report PASS or FAIL with reason. End with: VERDICT: ALL PASS or VERDICT: FAIL",
-    "fork_context": false
-  }
-}
+```
+multi_agent_v1__spawn_agent(
+  message="Verify the following:
+
+**Artifact:** <path or description>
+
+**Acceptance Criteria:**
+- CRITERION 1: <description>
+- CRITERION 2: <description>
+
+Read the actual files/artifacts. For each criterion, report PASS or FAIL with reason. End with: VERDICT: ALL PASS or VERDICT: FAIL",
+  fork_context=false
+)
 ```
 
 **Rules:**
-- Verifiers MUST have `fork_context: false` (memoryless).
+- Verifiers MUST have `fork_context=false` (memoryless).
 - Verifiers receive ONLY deliverables + criteria. Do NOT pass conversation history.
 - Each verifier independently reads the actual artifacts.
 - If a verifier returns FAIL, fix the issue and spawn a NEW verifier.
