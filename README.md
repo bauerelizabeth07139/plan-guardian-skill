@@ -2,10 +2,10 @@
   <img src="./assets/logo.svg" width="120" alt="Plan Guardian"/>
 </p>
 
-<h1 align="center">ğŸ›¡ï¸?Plan Guardian</h1>
+<h1 align="center">??? Plan Guardian</h1>
 
 <p align="center">
-  <strong>Strict planning Â· Memoryless verification Â· Subagent-first execution</strong><br/>
+  <strong>Strict planning ¡¤ Memoryless verification ¡¤ Subagent-first execution</strong><br/>
   A Codex skill that enforces verifiable planning, then validates completion with independent memoryless subagents.
 </p>
 
@@ -18,9 +18,9 @@
 
 ---
 
-## ğŸ“– What It Does
+## ?? What It Does
 
-Plan Guardian is a **Codex skill** that wraps every user request in a strict 7-step planning and verification workflow. Instead of letting Codex respond directly, it forces a closed-loop process: plan â†?execute â†?verify â†?report.
+Plan Guardian is a **Codex skill** that wraps every user request in a strict 7-step planning and verification workflow. Instead of letting Codex respond directly, it forces a closed-loop process: plan ¡ú execute ¡ú verify ¡ú report.
 
 ### Core Functionality
 
@@ -43,19 +43,19 @@ Plan Guardian is a **Codex skill** that wraps every user request in a strict 7-s
 
 ---
 
-## âœ?Why Plan Guardian?
+## ? Why Plan Guardian?
 
 Complex tasks fail silently when plans are loose and verification is shallow. Plan Guardian eliminates that by forcing a **closed-loop workflow**:
 
-- ğŸ¯ **Strict Planning** â€?Every request starts with a numbered plan, dependencies, and acceptance criteria
-- ğŸ¤– **Subagent-First** â€?Main loop stays lightweight; workers and verifiers handle the heavy lifting
-- ğŸ” **Memoryless Verification** â€?Independent subagents verify completion with zero prior context
-- ğŸ§  **Multimodal-First** â€?Workers prefer multimodal models; verifiers always use them
-- ğŸ”„ **Re-Planning Protocol** â€?When verification fails, a new plan is drafted (not blind retry) and re-verified until all pass
+- ?? **Strict Planning** ¡ª Every request starts with a numbered plan, dependencies, and acceptance criteria
+- ?? **Subagent-First** ¡ª Main loop stays lightweight; workers and verifiers handle the heavy lifting
+- ?? **Memoryless Verification** ¡ª Independent subagents verify completion with zero prior context
+- ?? **Multimodal-First** ¡ª Workers prefer multimodal models; verifiers always use them
+- ?? **Re-Planning Protocol** ¡ª When verification fails, a new plan is drafted (not blind retry) and re-verified until all pass
 
 ---
 
-## ğŸ—ï¸?Architecture
+## ??? Architecture
 
 ```mermaid
 flowchart TD
@@ -68,19 +68,22 @@ flowchart TD
     F -->|FAIL| H["Re-Plan (new 7-step plan)"] --> D
     G -->|Yes| I[Final Gate<br/>2+ Independent Verifiers]
     G -->|No| D
-    I -->|ALL PASS| J[âœ?Final Report]
+    I -->|ALL PASS| J[? Final Report]
     I -->|FAIL| H
 ```
 
 ---
 
-## ğŸš€ Quick Start
+## ?? Quick Start
 
 There are **two installation levels**. Choose based on how you want the skill to behave.
 
-### System Level â€?Auto-activates on every request (Recommended)
+### System Level ¡ª Auto-activates on every request (Recommended)
+
+**Two files must be installed:**
 
 ```bash
+# Step 1: Install the skill
 # Linux/macOS
 cp -r plan-guardian-skill ~/.codex/skills/.system/plan-guardian
 
@@ -88,13 +91,8 @@ cp -r plan-guardian-skill ~/.codex/skills/.system/plan-guardian
 robocopy plan-guardian-skill "$env:USERPROFILE\.codex\skills\.system\plan-guardian" /E
 ```
 
-**Important: Two files must be installed for full functionality:**
-- The skill (`SKILL.md`) tells Codex WHAT to do (7-step workflow)
-- The global AGENTS.md tells Codex HOW to do it (spawn subagents, detect multimodal)
-- Without AGENTS.md, the model will plan but NOT spawn workers or verifiers
-
-Install the AGENTS.md:
 ```bash
+# Step 2: Install the global AGENTS.md (REQUIRED for subagent spawning)
 # Linux/macOS
 cp AGENTS.global.md ~/.codex/AGENTS.md
 
@@ -102,12 +100,17 @@ cp AGENTS.global.md ~/.codex/AGENTS.md
 Copy-Item AGENTS.global.md "$env:USERPROFILE\.codex\AGENTS.md" -Force
 ```
 
-- Codex loads this on **every request** automatically â€?no exceptions
-- The 7-step workflow (Step 0 â†?Step 7) applies to all tasks, including simple questions
-- Skill appears as `plan-guardian` in Codex's system skills list
-- **This is the forced mode â€?no way to skip it once installed**
+**Why two files?**
+- `SKILL.md` tells Codex WHAT to do (7-step workflow)
+- `AGENTS.global.md` tells Codex HOW to do it (spawn subagents, detect multimodal, etc.)
+- Without AGENTS.md, the model will plan but NOT spawn workers or verifiers
 
-### User Level â€?Manual invocation only
+- Codex loads this on **every request** automatically ¡ª no exceptions
+- The 7-step workflow (Step 0 ¡ú Step 7) applies to all tasks, including simple questions
+- Skill appears as `plan-guardian` in Codex's system skills list
+- **This is the forced mode ¡ª no way to skip it once installed**
+
+### User Level ¡ª Manual invocation only
 
 ```bash
 # Linux/macOS
@@ -117,7 +120,7 @@ cp -r plan-guardian-skill ~/.codex/skills/plan-guardian
 robocopy plan-guardian-skill "$env:USERPROFILE\.codex\skills\plan-guardian" /E
 ```
 
-- **Not** automatically activated â€?you choose when to use it
+- **Not** automatically activated ¡ª you choose when to use it
 - Invoke explicitly with `$plan-guardian <your task>`
 - Use when you want strict planning only for complex tasks
 
@@ -135,7 +138,7 @@ python scripts/validate_skill.py .
 
 ---
 
-## ğŸ“‹ How It Works
+## ?? How It Works
 
 | Step | What Happens | Who Does It |
 |------|-------------|-------------|
@@ -145,99 +148,99 @@ python scripts/validate_skill.py .
 | **3. Acceptance Criteria** | Binary pass/fail criteria for every step | Main Loop |
 | **4. Execute** | Delegate all steps to Worker subagents | **Worker Subagent** |
 | **5. Per-Step Verification** | Independent memoryless verifier checks each step | **Verifier Subagent** |
-| **6. Final Gate** | â‰? memoryless verifiers check ALL criteria | **Verifier Subagents** |
+| **6. Final Gate** | ¡İ2 memoryless verifiers check ALL criteria | **Verifier Subagents** |
 | **7. Report** | Present plan, status, evidence, and remediation actions | Main Loop |
 
 ---
 
-## ğŸ§© Subagent Roles
+## ?? Subagent Roles
 
 ### Planner (Main Loop)
 - Clarifies intent, drafts plan, coordinates execution
-- **Never** pastes large files or logs â€?delegates to workers
-- **Never** self-verifies â€?all verification uses spawn_agent
+- **Never** pastes large files or logs ¡ª delegates to workers
+- **Never** self-verifies ¡ª all verification uses spawn_agent
 
 ### Worker Subagents
 - Implement, build, fix, edit, inspect files, run tests
-- **Prefer multimodal model by default** â€?fall back to parent for pure text/code only
+- **Prefer multimodal model by default** ¡ª fall back to parent for pure text/code only
 - **Visual rule**: MUST use multimodal model for image/UI/PDF tasks
 
 ### Verifier Subagents
 - Independent, memoryless (`fork_context=false`)
 - Receive only: deliverables + acceptance criteria
 - Output: `PASS` or `FAIL` with exact reason
-- **Always use multimodal model** â€?code, files, and artifacts all benefit from visual understanding
+- **Always use multimodal model** ¡ª code, files, and artifacts all benefit from visual understanding
 
 ---
 
-## ğŸ”§ Model Selection
+## ?? Model Selection
 
 ```
 Step 0 detection result:
-â”œâ”€â”€ MULTIMODAL   â†?All workers/verifiers inherit parent model
-â”œâ”€â”€ NOT_MULTIMODAL â†?Visual tasks override to multimodal model; text tasks inherit
-â””â”€â”€ UNKNOWN      â†?Assume multimodal, inherit parent model
+©À©¤©¤ MULTIMODAL    ¡ú All workers/verifiers inherit parent model
+©À©¤©¤ NOT_MULTIMODAL ¡ú Visual tasks override to multimodal model; text tasks inherit
+©¸©¤©¤ UNKNOWN       ¡ú Assume multimodal, inherit parent model
 ```
 
 ---
 
-## â±ï¸ Timeout Rules
+## ?? Timeout Rules
 
 | Verifier Type | timeout_ms | Retry |
 |---------------|-----------|-------|
 | Per-step (Step 5) | 120,000 (2 min) | +60s each retry |
 | Final gate (Step 6) | 180,000 (3 min) | +60s each retry |
-| Maximum | 360,000 (6 min) | â€?|
+| Maximum | 360,000 (6 min) | ¡ª |
 
 ---
 
-## ğŸ“ Structure
+## ?? Structure
 
 ```
 plan-guardian-skill/
-â”œâ”€â”€ SKILL.md                              # Core skill instructions (7-step workflow)
-â”œâ”€â”€ AGENTS.md                             # Repo-level agent guidelines
-â”?  â”œâ”€â”€ AGENTS.global.md                       # Global template (install to ~/.codex/AGENTS.md)
-â”œâ”€â”€ agents/
-â”?  â””â”€â”€ openai.yaml                       # UI metadata (display name, icon, default prompt)
-â”œâ”€â”€ assets/
-â”?  â”œâ”€â”€ plan-guardian-small.svg           # Small icon
-â”?  â”œâ”€â”€ logo.png                          # Large icon
-â”?  â””â”€â”€ logo.svg                          # Vector logo
-â”œâ”€â”€ references/
-â”?  â”œâ”€â”€ memoryless_review.md              # Strict verifier protocol & independence rules
-â”?  â””â”€â”€ plan_protocol.md                  # Acceptance criteria patterns & verifier prompt template
-â”œâ”€â”€ scripts/
-â”?  â”œâ”€â”€ detect_multimodal.py              # Runtime multimodal model detection via API probe
-â”?  â”œâ”€â”€ plan_guardian.py                  # Sample plan generator (demo/testing)
-â”?  â””â”€â”€ validate_skill.py                 # Local validator (checks SKILL.md frontmatter & required files)
-â”œâ”€â”€ LICENSE                               # MIT license
-â””â”€â”€ README.md                             # This file
+©À©¤©¤ SKILL.md                              # Core skill instructions (7-step workflow)
+©À©¤©¤ AGENTS.md                             # Repo-level agent guidelines
+©¦   ©À©¤©¤ AGENTS.global.md                  # Global template (install to ~/.codex/AGENTS.md)
+©À©¤©¤ agents/
+©¦   ©¸©¤©¤ openai.yaml                       # UI metadata (display name, icon, default prompt)
+©À©¤©¤ assets/
+©¦   ©À©¤©¤ plan-guardian-small.svg           # Small icon
+©¦   ©À©¤©¤ logo.png                          # Large icon
+©¦   ©¸©¤©¤ logo.svg                          # Vector logo
+©À©¤©¤ references/
+©¦   ©À©¤©¤ memoryless_review.md              # Strict verifier protocol & independence rules
+©¦   ©¸©¤©¤ plan_protocol.md                  # Acceptance criteria patterns & verifier prompt template
+©À©¤©¤ scripts/
+©¦   ©À©¤©¤ detect_multimodal.py              # Runtime multimodal model detection via API probe
+©¦   ©À©¤©¤ plan_guardian.py                  # Sample plan generator (demo/testing)
+©¦   ©¸©¤©¤ validate_skill.py                 # Local validator (checks SKILL.md frontmatter & required files)
+©À©¤©¤ LICENSE                               # MIT license
+©¸©¤©¤ README.md                             # This file
 ```
 
 ---
 
-## ğŸ›¡ï¸?Hard Rules
+## ?? Hard Rules
 
-1. â?Never respond to the user without completing the Final Gate (Step 6)
-2. â?Never self-verify â€?all verification uses `spawn_agent` with `fork_context=false`
-3. â?Never reuse a verifier that returned FAIL â€?follow the Re-Planning Protocol
-4. â?Never pass conversation history to verifiers â€?they get deliverables + criteria only
-5. â?Never assume a step passed without verifier evidence
-6. âœ?Plan must have **exactly 7 steps** â€?no shortcuts
-7. âœ?If two final verifiers disagree â†?spawn a third
-8. âœ?When verification fails â†?Re-Planning Protocol, never blind retry
-9. âœ?After 3 re-plan cycles â†?escalate honestly, never silently give up
-10. âœ?If a verifier times out â†?treat as FAIL, increase timeout by 60s, retry with new verifier
+1. ? Never respond to the user without completing the Final Gate (Step 6)
+2. ? Never self-verify ¡ª all verification uses `spawn_agent` with `fork_context=false`
+3. ? Never reuse a verifier that returned FAIL ¡ª follow the Re-Planning Protocol
+4. ? Never pass conversation history to verifiers ¡ª they get deliverables + criteria only
+5. ? Never assume a step passed without verifier evidence
+6. ?? Plan must have **exactly 7 steps** ¡ª no shortcuts
+7. ?? If two final verifiers disagree ¡ú spawn a third
+8. ?? When verification fails ¡ú Re-Planning Protocol, never blind retry
+9. ?? After 3 re-plan cycles ¡ú escalate honestly, never silently give up
+10. ?? If a verifier times out ¡ú treat as FAIL, increase timeout by 60s, retry with new verifier
 
 ---
 
-## ğŸ“œ License
+## ?? License
 
-MIT â€?Use it, fork it, improve it.
+MIT ¡ª Use it, fork it, improve it.
 
 ---
 
 <p align="center">
-  <sub>Built for <a href="https://github.com/openai/codex">Codex</a> Â· Enforcing rigor since 2026</sub>
+  <sub>Built for <a href="https://github.com/openai/codex">Codex</a> ¡¤ Enforcing rigor since 2026</sub>
 </p>
