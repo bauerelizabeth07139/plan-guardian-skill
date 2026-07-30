@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.3.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-1.5.1-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -86,6 +86,20 @@ cp -r plan-guardian-skill ~/.codex/skills/.system/plan-guardian
 
 # Windows (PowerShell)
 robocopy plan-guardian-skill "$env:USERPROFILE\.codex\skills\.system\plan-guardian" /E
+```
+
+**Important: Two files must be installed for full functionality:**
+- The skill (`SKILL.md`) tells Codex WHAT to do (7-step workflow)
+- The global AGENTS.md tells Codex HOW to do it (spawn subagents, detect multimodal)
+- Without AGENTS.md, the model will plan but NOT spawn workers or verifiers
+
+Install the AGENTS.md:
+```bash
+# Linux/macOS
+cp AGENTS.global.md ~/.codex/AGENTS.md
+
+# Windows (PowerShell)
+Copy-Item AGENTS.global.md "$env:USERPROFILE\.codex\AGENTS.md" -Force
 ```
 
 - Codex loads this on **every request** automatically �?no exceptions
@@ -183,6 +197,7 @@ Step 0 detection result:
 plan-guardian-skill/
 ├── SKILL.md                              # Core skill instructions (7-step workflow)
 ├── AGENTS.md                             # Repo-level agent guidelines
+�?  ├── AGENTS.global.md                       # Global template (install to ~/.codex/AGENTS.md)
 ├── agents/
 �?  └── openai.yaml                       # UI metadata (display name, icon, default prompt)
 ├── assets/
