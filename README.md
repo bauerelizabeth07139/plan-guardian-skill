@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.5.1-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-1.9.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -29,10 +29,10 @@ Plan Guardian is a **Codex skill** that wraps every user request in a strict 7-s
 | **Strict Planning** | Every request produces exactly 7 numbered steps with deliverables, dependencies, and risks |
 | **Acceptance Criteria** | Each step gets binary pass/fail criteria defined before execution begins |
 | **Worker Delegation** | Implementation is delegated to spawned worker subagents, keeping the main loop lightweight |
-| **Memoryless Verification** | Independent verifier subagents (with `fork_context=false`) check each step with zero prior context |
-| **Final Gate** | At least 2 independent verifiers check ALL criteria before the response is delivered |
-| **Re-Planning Protocol** | On failure, a new plan is drafted (not blind retry) and re-verified until all pass or 3 cycles exhausted |
+| **3-Phase Verification** | Each verification step uses 3 separate subagents (READ & STRUCTURE → SYNTAX & CONNECTIONS → FUNCTIONAL TEST & VISUAL CHECK) |
+| **Context-Aware Splitting** | Large file sets are split across multiple subagents to stay within the 258k token limit |
 | **Multimodal Detection** | Step 0 probes the model API to determine image support, then applies the result to all worker/verifier model selections |
+| **FAIL → Fix → Re-Verify** | When verification fails, a fix plan is created, executed by a new worker, and re-verified (up to 5 cycles) |
 
 ### Why Use It?
 
@@ -40,6 +40,7 @@ Plan Guardian is a **Codex skill** that wraps every user request in a strict 7-s
 - Prevents self-verification bias (main loop never checks its own work)
 - Forces observable, binary acceptance criteria before execution starts
 - Scales to multi-file, multi-step tasks with parallel worker subagents
+- Context-aware: splits large tasks across multiple subagents to avoid context overflow
 
 ---
 
@@ -49,9 +50,10 @@ Complex tasks fail silently when plans are loose and verification is shallow. Pl
 
 - 📐 **Strict Planning** — Every request starts with a numbered plan, dependencies, and acceptance criteria
 - 🤖 **Subagent-First** — Main loop stays lightweight; workers and verifiers handle the heavy lifting
-- 🔍 **Memoryless Verification** — Independent subagents verify completion with zero prior context
+- 🔍 **3-Phase Verification** — Independent subagents verify each phase with zero prior context
 - 🧠 **Multimodal-First** — Workers prefer multimodal models; verifiers always use them
-- 🔄 **Re-Planning Protocol** — When verification fails, a new plan is drafted (not blind retry) and re-verified until all pass
+- 🔄 **FAIL → Fix → Re-Verify** — When verification fails, a fix plan is created and re-verified (up to 5 cycles)
+- 📦 **Context-Aware** — Large tasks are split across multiple subagents to stay within the 258k token limit
 
 ---
 
@@ -63,13 +65,13 @@ flowchart TD
     B --> C[Draft Plan + Acceptance Criteria]
     C --> D{Execute}
     D --> E[Worker Subagent<br/>Implementation]
-    E --> F[Memoryless Verifier<br/>Per-Step Check]
-    F -->|PASS| G{All Steps OK?}
-    F -->|FAIL| H["Re-Plan (new 7-step plan)"] --> D
-    G -->|Yes| I[Final Gate<br/>2+ Independent Verifiers]
-    G -->|No| D
-    I -->|ALL PASS| J[✅ Final Report]
-    I -->|FAIL| H
+    E --> F[Phase 1: READ & STRUCTURE]
+    F --> G[Phase 2: SYNTAX & CONNECTIONS]
+    G --> H[Phase 3: FUNCTIONAL TEST & VISUAL CHECK]
+    H -->|PASS| I{All Steps OK?}
+    H -->|FAIL| J[FAIL → Plan Fix → New Worker] --> E
+    I -->|Yes| K[✅ Final Report]
+    I -->|No| D
 ```
 
 ---
@@ -102,7 +104,7 @@ Copy-Item AGENTS.global.md "$env:USERPROFILE\.codex\AGENTS.md" -Force
 
 **Why two files?**
 - `SKILL.md` tells Codex WHAT to do (7-step workflow)
-- `AGENTS.global.md` tells Codex HOW to do it (spawn subagents, detect multimodal, etc.)
+- `AGENTS.global.md` tells Codex HOW to do it (spawn subagents, detect multimodal, 3-phase verification, context management)
 - Without AGENTS.md, the model will plan but NOT spawn workers or verifiers
 
 - Codex loads this on **every request** automatically — no exceptions
@@ -147,8 +149,8 @@ python scripts/validate_skill.py .
 | **2. Draft Plan** | Exactly 7 numbered steps with dependencies, risks, and deliverables | Main Loop |
 | **3. Acceptance Criteria** | Binary pass/fail criteria for every step | Main Loop |
 | **4. Execute** | Delegate all steps to Worker subagents | **Worker Subagent** |
-| **5. Per-Step Verification** | Independent memoryless verifier checks each step | **Verifier Subagent** |
-| **6. Final Gate** | ≥2 memoryless verifiers check ALL criteria | **Verifier Subagents** |
+| **5. Verify (3 Phases)** | Phase 1: READ & STRUCTURE → Phase 2: SYNTAX & CONNECTIONS → Phase 3: FUNCTIONAL TEST & VISUAL CHECK | **3 Verifier Subagents** |
+| **6. FAIL → Fix → Re-Verify** | If verifier FAILs: create fix plan, spawn new worker, spawn new verifiers (up to 5 cycles) | **New Workers + Verifiers** |
 | **7. Report** | Present plan, status, evidence, and remediation actions | Main Loop |
 
 ---
@@ -159,17 +161,20 @@ python scripts/validate_skill.py .
 - Clarifies intent, drafts plan, coordinates execution
 - **Never** pastes large files or logs — delegates to workers
 - **Never** self-verifies — all verification uses spawn_agent
+- Estimates context before spawning subagents (258k token limit)
 
 ### Worker Subagents
 - Implement, build, fix, edit, inspect files, run tests
-- **Prefer multimodal model by default** — fall back to parent for pure text/code only
-- **Visual rule**: MUST use multimodal model for image/UI/PDF tasks
+- **Text/code tasks**: spawn WITHOUT model override (inherits parent)
+- **Visual tasks** (images, UI, frontend, screenshots, diagrams, PDFs): spawn WITH model override when Step 0 = NOT_MULTIMODAL
 
-### Verifier Subagents
-- Independent, memoryless (`fork_context=false`)
-- Receive only: deliverables + acceptance criteria
-- Output: `PASS` or `FAIL` with exact reason
-- **Always use multimodal model** — code, files, and artifacts all benefit from visual understanding
+### Verifier Subagents (3 Phases)
+- **Phase 1 (READ & STRUCTURE)**: Read files, check required fields, verify values
+- **Phase 2 (SYNTAX & CONNECTIONS)**: Check syntax, bindings, event handlers, APIs, imports, routes
+- **Phase 3 (FUNCTIONAL TEST & VISUAL CHECK)**: Run artifact, interact with elements, screenshot each interface, compare to pre-written expectations
+- Each phase is a separate subagent with only: acceptance criteria + previous phase summary
+- **ALWAYS use multimodal model when available**
+- **Write expected results BEFORE testing — do not change after seeing actual**
 
 ---
 
@@ -184,12 +189,26 @@ Step 0 detection result:
 
 ---
 
+## 📦 Context Management (258k Token Limit)
+
+Each subagent has a 258k token context limit. Do NOT get close to this limit.
+
+| Task Size | Files | Subagents |
+|-----------|-------|-----------|
+| Small | 1-2 files | 1 subagent |
+| Medium | 3-5 files | 2-3 subagents |
+| Large | 6+ files | 4+ subagents |
+
+Each subagent returns a **summary**, not full file content. Pass summaries to the next subagent.
+
+---
+
 ## ⏱️ Timeout Rules
 
 | Verifier Type | timeout_ms | Retry |
 |---------------|-----------|-------|
-| Per-step (Step 5) | 120,000 (2 min) | +60s each retry |
-| Final gate (Step 6) | 180,000 (3 min) | +60s each retry |
+| Per-step (Phase 1-3) | 120,000 (2 min) | +60s each retry |
+| Final gate | 180,000 (3 min) | +60s each retry |
 | Maximum | 360,000 (6 min) | — |
 
 ---
@@ -222,16 +241,16 @@ plan-guardian-skill/
 
 ## 📜 Hard Rules
 
-1. ✅ Never respond to the user without completing the Final Gate (Step 6)
-2. ✅ Never self-verify — all verification uses `spawn_agent` with `fork_context=false`
-3. ✅ Never reuse a verifier that returned FAIL — follow the Re-Planning Protocol
-4. ✅ Never pass conversation history to verifiers — they get deliverables + criteria only
+1. ✅ Never respond to the user without completing the Final Gate (Step 7)
+2. ✅ Never self-verify — all verification uses subagents with fork_context=false
+3. ✅ Never reuse a verifier that returned FAIL — follow the Fix Cycle
+4. ✅ Never pass conversation history to verifiers — they get criteria + previous phase summaries only
 5. ✅ Never assume a step passed without verifier evidence
 6. 🔒 Plan must have **exactly 7 steps** — no shortcuts
-7. 🔒 If two final verifiers disagree → spawn a third
-8. 🔒 When verification fails → Re-Planning Protocol, never blind retry
-9. 🔒 After 3 re-plan cycles → escalate honestly, never silently give up
-10. 🔒 If a verifier times out → treat as FAIL, increase timeout by 60s, retry with new verifier
+7. 🔒 When verification fails → Fix Cycle (up to 5 cycles)
+8. 🔒 After 5 fix cycles → escalate honestly, never silently give up
+9. 🔒 If a verifier times out → treat as FAIL, increase timeout by 60s, retry with new verifier
+10. 🔒 Estimate context before spawning subagents — do not exceed 258k token limit
 
 ---
 
