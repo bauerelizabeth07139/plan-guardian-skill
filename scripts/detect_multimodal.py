@@ -7,6 +7,9 @@ TINY_PNG_B64 = (
 )
 WELL_KNOWN = ["mimo-v2.5", "gpt-4o", "gpt-4o-mini", "gpt-4-vision-preview", "o4-mini", "claude-3-haiku-20240307"]
 PROVIDER_ENDPOINTS = ["https://api.xiaomimimo.com/v1"]
+MODEL_ENDPOINT_HINTS = {
+    "mimo": "https://api.xiaomimimo.com/v1",
+}
 
 
 def get_config(base_url: str, api_key: str) -> tuple:
@@ -31,19 +34,26 @@ def is_api_like(base_url: str, timeout: int = 20) -> bool:
             data = json.loads(raw)
             return isinstance(data.get("data"), list)
     except urllib.error.HTTPError as exc:
-        # 401/403 likely means API exists but needs auth; still treat as API-like
         return exc.code in (401, 403)
     except Exception:
         return False
 
 
-def try_resolve_base(base_url: str) -> str:
+def try_resolve_env_base(base_url: str) -> str:
     if base_url and is_api_like(base_url):
         return base_url
     for ep in PROVIDER_ENDPOINTS:
         if is_api_like(ep):
             return ep
     return base_url
+
+
+def resolve_model_endpoint(model: str) -> str:
+    ml = (model or "").lower()
+    for prefix, ep in MODEL_ENDPOINT_HINTS.items():
+        if ml.startswith(prefix) and is_api_like(ep):
+            return ep
+    return ""
 
 
 def _post_chat(base_url: str, api_key: str, model: str, payload: dict, timeout: int):
@@ -161,28 +171,44 @@ def main() -> int:
         print("Usage: python detect_multimodal.py <base_url> [<api_key> [<model_id|auto>]]")
         return 2
 
-    base_url = sys.argv[1] if len(sys.argv) >= 2 else ""
-    api_key = sys.argv[2] if len(sys.argv) >= 3 else ""
+    raw_base = sys.argv[1] if len(sys.argv) >= 2 else ""
+    raw_key = sys.argv[2] if len(sys.argv) >= 3 else ""
     explicit = sys.argv[3] if len(sys.argv) == 4 else ""
 
-    base_url, api_key = get_config(base_url, api_key)
-    if not base_url or not api_key:
+    raw_base, api_key = get_config(raw_base, raw_key)
+    if not raw_base or not api_key:
         print(json.dumps({"mode": "env", "status": "UNKNOWN", "reason": "missing OPENAI_BASE_URL or OPENAI_API_KEY"}))
         return 2
 
-    base_url = try_resolve_base(base_url)
+    env_base = try_resolve_env_base(raw_base)
 
     if explicit and explicit.lower() != "auto":
-        try:
-            result = check(base_url, api_key, explicit)
-            print(json.dumps({"mode": "explicit", "selected": explicit, "multimodal": result, "status": "MULTIMODAL" if result else "NOT_MULTIMODAL"}))
-            return 0 if result else 1
-        except Exception as exc:
-            print(json.dumps({"mode": "explicit", "selected": explicit, "error": str(exc), "status": "UNKNOWN"}), file=sys.stderr)
-            return 2
+        # Check on the environment-resolved base first
+        env_ok = check(env_base, api_key, explicit)
+        used_base = env_base
 
-    model_ids = list_models(base_url, api_key)
+        # Also check model-specific endpoint if environment resolved endpoint fails or differs
+        model_ep = resolve_model_endpoint(explicit)
+        model_ok = False
+        if model_ep and model_ep != env_base:
+            model_ok = check(model_ep, api_key, explicit)
+            if model_ok:
+                used_base = model_ep
 
+        status = "MULTIMODAL" if (env_ok or model_ok) else "NOT_MULTIMODAL"
+        print(json.dumps({
+            "mode": "explicit",
+            "selected": explicit,
+            "multimodal": env_ok or model_ok,
+            "env_base": env_base,
+            "model_endpoint": model_ep or None,
+            "used_base": used_base,
+            "status": status,
+        }))
+        return 0 if (env_ok or model_ok) else 1
+
+    # auto mode
+    model_ids = list_models(env_base, api_key)
     candidates = choose_candidates(model_ids)
     for m in model_ids:
         if m not in candidates:
@@ -193,17 +219,20 @@ def main() -> int:
 
     tested: List[str] = []
     for m in candidates:
-        try:
-            ok = check(base_url, api_key, m)
-            tested.append(m)
-            if ok:
-                print(json.dumps({"mode": "auto", "selected": m, "listed": bool(model_ids), "tested": tested, "status": "MULTIMODAL"}))
-                return 0
-        except Exception:
-            tested.append(m)
-            continue
+        ok_env = check(env_base, api_key, m)
+        tested.append(m)
+        if ok_env:
+            print(json.dumps({"mode": "auto", "selected": m, "listed": bool(model_ids), "used_base": env_base, "tested": tested, "status": "MULTIMODAL"}))
+            return 0
 
-    print(json.dumps({"mode": "auto", "selected": None, "listed": bool(model_ids), "tested": tested, "status": "NOT_MULTIMODAL"}))
+        model_ep = resolve_model_endpoint(m)
+        if model_ep and model_ep != env_base:
+            ok_model = check(model_ep, api_key, m)
+            if ok_model:
+                print(json.dumps({"mode": "auto", "selected": m, "listed": bool(model_ids), "used_base": model_ep, "tested": tested, "status": "MULTIMODAL"}))
+                return 0
+
+    print(json.dumps({"mode": "auto", "selected": None, "listed": bool(model_ids), "used_base": env_base, "tested": tested, "status": "NOT_MULTIMODAL"}))
     return 1
 
 

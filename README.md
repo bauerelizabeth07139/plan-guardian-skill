@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.2.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-2.3.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -189,7 +189,7 @@ $env:OPENAI_API_KEY  = "sk-REDACTED"
 python work\repos\plan-guardian-skill\scripts\detect_multimodal.py
 ```
 
-MiMo quick check:
+MiMo quick check (validates both environment endpoint and model endpoint):
 ```
 $env:OPENAI_BASE_URL = "https://platform.xiaomimimo.com/v1"
 $env:OPENAI_API_KEY  = "sk-REDACTED"
