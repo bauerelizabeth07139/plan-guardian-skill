@@ -121,6 +121,11 @@ def main() -> int:
         if m not in candidates:
             candidates.append(m)
 
+    # additionally include all remaining listed models so unknown models are tested too
+    for m in model_ids:
+        if m not in candidates:
+            candidates.append(m)
+
     tested: List[str] = []
     for m in candidates:
         try:

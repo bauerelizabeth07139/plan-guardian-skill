@@ -41,7 +41,8 @@ Spawn a diagnostic subagent to:
 3. Filter plausible multimodal candidates (for example: models containing `4o`, `4-vision`, `vision`, `omni`, or `multimodal`).
 4. Probe each candidate with a minimal image+text request until one succeeds.
 5. If discovery misses, also probe well-known multimodal models (for example: `gpt-4o`, `gpt-4o-mini`, `gpt-4-vision-preview`, `o4-mini`, `claude-3-haiku-20240307`) when present.
-6. Report the detected model and result (MULTIMODAL / NOT_MULTIMODAL / UNKNOWN).
+6. Also test remaining listed models so unknown models are not skipped.
+7. Report the detected model and result (MULTIMODAL / NOT_MULTIMODAL / UNKNOWN).
 
 If credentials are not available or discovery fails, fall back to the parent model and report UNKNOWN.
 
