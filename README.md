@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.6.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-2.7.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -181,8 +181,8 @@ python scripts/validate_skill.py .
 ## Codex++ integration (Plan Guardian)
 
 - Designed for use inside the Codex (Codex++) environment.
-- Step 0 detection is integrated with the local Codex++ proxy (mimo2codex). When no base URL is configured, it defaults to `http://127.0.0.1:8788/v1`.
-- The detection flow validates the environment endpoint first, then validates the model-specific endpoint when known (for example MiMo models).
+- Step 0 detection is integrated with the local Codex++ proxy. When no base URL is configured, it defaults to `http://127.0.0.1:8788/v1` (provider-agnostic).
+- The detection flow validates the environment endpoint first, then validates the model-specific endpoint when known (provider-agnostic; depends on configured backend).
 - Use the quick-check examples below to confirm your Codex++ setup before running longer workflows.
 
 ## Model Selection
@@ -196,14 +196,14 @@ $env:OPENAI_API_KEY  = "sk-REDACTED"
 python work\repos\plan-guardian-skill\scripts\detect_multimodal.py
 ```
 
-MiMo quick check (validates both environment endpoint and model endpoint):
+Quick check (validates both environment endpoint and model endpoint):
 ```
 $env:OPENAI_BASE_URL = "https://platform.xiaomimimo.com/v1"
 $env:OPENAI_API_KEY  = "sk-REDACTED"
 python work\repos\plan-guardian-skill\scripts\detect_multimodal.py
 ```
 
-Codex++ quick check (via local mimo2codex proxy; defaults to 127.0.0.1:8788 when no base URL is set):
+Codex++ quick check (via local Codex++ proxy; defaults to 127.0.0.1:8788 when no base URL is set):
 ```
 python work\repos\plan-guardian-skill\scripts\detect_multimodal.py
 ```

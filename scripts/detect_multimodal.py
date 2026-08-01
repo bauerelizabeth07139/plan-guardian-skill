@@ -7,9 +7,8 @@ TINY_PNG_B64 = (
     "2mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
 )
 WELL_KNOWN = ["mimo-v2.5", "gpt-4o", "gpt-4o-mini", "gpt-4-vision-preview", "o4-mini", "claude-3-haiku-20240307"]
-PROVIDER_ENDPOINTS = ["https://api.xiaomimimo.com/v1"]
+PROVIDER_ENDPOINTS = []
 MODEL_ENDPOINT_HINTS = {
-    "mimo": "https://api.xiaomimimo.com/v1",
 }
 DEFAULT_LOCAL_PROXY = "http://127.0.0.1:8788/v1"
 CODEX_PP_DOTENV = Path.home() / ".mimo2codex" / ".env"
