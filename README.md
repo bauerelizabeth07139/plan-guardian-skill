@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.0.3-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-2.1.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -185,6 +185,13 @@ Step 0 now uses available-model discovery by default: list candidates from the c
 Quick check (Windows PowerShell):
 ```
 $env:OPENAI_BASE_URL = "https://api.openai.com/v1"
+$env:OPENAI_API_KEY  = "sk-REDACTED"
+python work\repos\plan-guardian-skill\scripts\detect_multimodal.py
+```
+
+MiMo quick check:
+```
+$env:OPENAI_BASE_URL = "https://platform.xiaomimimo.com/v1"
 $env:OPENAI_API_KEY  = "sk-REDACTED"
 python work\repos\plan-guardian-skill\scripts\detect_multimodal.py
 ```

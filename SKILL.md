@@ -37,6 +37,7 @@ Before any planning, determine which models support multimodal (image) input.
 
 Spawn a diagnostic subagent to:
 1. Detect credentials from the environment when explicit values are not provided (OPENAI_BASE_URL and OPENAI_API_KEY).
+2. If the configured base URL does not look like a working API endpoint, auto-resolve to a known provider endpoint when possible (for example Xiaomi MiMo -> https://api.xiaomimimo.com/v1).
 2. List available models from the configured endpoint.
 3. Filter plausible multimodal candidates (for example: models containing `4o`, `4-vision`, `vision`, `omni`, or `multimodal`).
 4. Probe each candidate with a minimal image+text request until one succeeds.
