@@ -12,6 +12,7 @@ These instructions apply to every file in this repository.
 - Prefer inheriting the parent model for text/code-only subtasks.
 - When a task involves images, screenshots, diagrams, UI, PDFs with visual layout, or rendered artifacts, use a multimodal model for workers and verifiers.
 - If the parent model is not multimodal, set the subagent model explicitly for that visual subtask.
+- Step 0 should discover available models when credentials are available, probe likely multimodal candidates, and fall back to UNKNOWN/parent when discovery is not possible.
 
 ## Context Minimization
 - Pass file paths and acceptance criteria to subagents instead of pasting long content into the planner.

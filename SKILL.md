@@ -33,14 +33,21 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 
 Before any planning, determine which models support multimodal (image) input.
 
-**How to detect:**
+**Preferred method (available-model discovery):**
 
-Spawn a diagnostic subagent:
+Spawn a diagnostic subagent to:
+1. Detect credentials from the environment when explicit values are not provided.
+2. List available models from the configured endpoint.
+3. Filter plausible multimodal candidates (for example: models containing `4o`, `4-vision`, `vision`, `omni`, or `multimodal`).
+4. Probe each candidate with a minimal image+text request until one succeeds.
+5. Report the detected model and result (MULTIMODAL / NOT_MULTIMODAL / UNKNOWN).
+
+If credentials are not available or discovery fails, fall back to the parent model and report UNKNOWN.
+
 ```
 multi_agent_v1__spawn_agent(
-  message="Run this command and report the output: python <skill_dir>/scripts/detect_multimodal.py <base_url> <api_key> <model_id>
-If you cannot access API credentials, try sending a minimal image+text message to the model and check if it responds.
-Report one of: MULTIMODAL, NOT_MULTIMODAL, or UNKNOWN.",
+  message="Run this command and report the output: python <skill_dir>/scripts/detect_multimodal.py <base_url> <api_key> [model_id|auto]
+If model_id is omitted or set to auto, list available models and probe likely multimodal candidates. Prefer gpt-4o and other vision-capable models. Report the selected model and result: MULTIMODAL, NOT_MULTIMODAL, or UNKNOWN.",
   fork_context=false
 )
 ```
@@ -204,6 +211,8 @@ End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers and ex
 - Each verifier independently reads the actual artifacts.
 - If a verifier returns FAIL, fix the issue and spawn a NEW verifier.
 - If two verifiers disagree, spawn a third. If conflict persists, treat as FAIL.
+- Phase 3 must be split by scope. Use multiple subagents (for example: API functional checks, UI functional checks, edge-case and error handling checks). Do not overload one subagent with all interactions.
+- Keep Phase 3 subagents small and time-bounded. Prefer fewer criteria per subagent and more subagents over a single long-running verifier.
 
 ### Step 6: Re-Plan if Needed
 - If any verifier returned FAIL, analyze the failure.
