@@ -1,11 +1,16 @@
-﻿from __future__ import annotations
-import json, sys, urllib.error, urllib.request
+﻿import json, os, sys, urllib.error, urllib.request
 from typing import List
 
 TINY_PNG_B64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4"
     "2mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
 )
+
+
+def get_config(base_url: str, api_key: str) -> tuple:
+    base = (base_url or os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_KEY_BASE_URL") or "").strip()
+    key = (api_key or os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_SECRET_KEY") or "").strip()
+    return base, key
 
 
 def check(base_url: str, api_key: str, model: str, timeout: int = 20) -> bool:
@@ -60,39 +65,45 @@ def choose_candidates(model_ids: List[str]) -> List[str]:
 
 
 def main() -> int:
-    if len(sys.argv) < 3 or len(sys.argv) > 4:
-        print("Usage: python detect_multimodal.py <base_url> <api_key> [model_id|auto]")
+    if len(sys.argv) < 2 or len(sys.argv) > 4:
+        print("Usage: python detect_multimodal.py <base_url> [<api_key> [<model_id|auto>]]")
         return 2
 
-    base_url, api_key = sys.argv[1], sys.argv[2]
+    base_url = sys.argv[1] if len(sys.argv) >= 2 else ""
+    api_key = sys.argv[2] if len(sys.argv) >= 3 else ""
     explicit = sys.argv[3] if len(sys.argv) == 4 else ""
+
+    base_url, api_key = get_config(base_url, api_key)
+    if not base_url or not api_key:
+        print(json.dumps({"mode": "env", "status": "UNKNOWN", "reason": "missing OPENAI_BASE_URL or OPENAI_API_KEY"}))
+        return 2
 
     if explicit and explicit.lower() != "auto":
         try:
             result = check(base_url, api_key, explicit)
-            print(json.dumps({"mode": "explicit", "model": explicit, "multimodal": result}))
+            print(json.dumps({"mode": "explicit", "selected": explicit, "multimodal": result, "status": "MULTIMODAL" if result else "NOT_MULTIMODAL"}))
             return 0 if result else 1
         except Exception as exc:
-            print(json.dumps({"mode": "explicit", "model": explicit, "error": str(exc)}), file=sys.stderr)
+            print(json.dumps({"mode": "explicit", "selected": explicit, "error": str(exc), "status": "UNKNOWN"}), file=sys.stderr)
             return 2
 
     try:
         model_ids = list_models(base_url, api_key)
     except Exception as exc:
-        print(json.dumps({"mode": "auto", "model": None, "status": "UNKNOWN", "reason": f"list models failed: {exc}"}))
+        print(json.dumps({"mode": "auto", "selected": None, "status": "UNKNOWN", "reason": f"list models failed: {exc}"}))
         return 2
 
     candidates = choose_candidates(model_ids)
-    tested = []
+    tested: List[str] = []
     for m in candidates:
         try:
             ok = check(base_url, api_key, m)
-            tested.append({"model": m, "multimodal": ok})
+            tested.append(m)
             if ok:
                 print(json.dumps({"mode": "auto", "selected": m, "tested": tested, "status": "MULTIMODAL"}))
                 return 0
-        except Exception as exc:
-            tested.append({"model": m, "error": str(exc)})
+        except Exception:
+            tested.append(m)
             continue
 
     print(json.dumps({"mode": "auto", "selected": None, "tested": tested, "status": "NOT_MULTIMODAL"}))

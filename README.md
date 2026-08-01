@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.0.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-2.0.1-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -181,6 +181,13 @@ python scripts/validate_skill.py .
 ## Model Selection
 
 Step 0 now uses available-model discovery by default: list candidates from the configured endpoint, probe for multimodal support, and prefer the best match. If credentials are not available or discovery fails, fall back to the parent model and report UNKNOWN.
+
+Quick check (Windows PowerShell):
+```
+$env:OPENAI_BASE_URL = "https://api.openai.com/v1"
+$env:OPENAI_API_KEY  = "sk-REDACTED"
+python work\repos\plan-guardian-skill\scripts\detect_multimodal.py
+```
 
 ```
 Step 0 result:

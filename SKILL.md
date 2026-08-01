@@ -46,8 +46,8 @@ If credentials are not available or discovery fails, fall back to the parent mod
 
 ```
 multi_agent_v1__spawn_agent(
-  message="Run this command and report the output: python <skill_dir>/scripts/detect_multimodal.py <base_url> <api_key> [model_id|auto]
-If model_id is omitted or set to auto, list available models and probe likely multimodal candidates. Prefer gpt-4o and other vision-capable models. Report the selected model and result: MULTIMODAL, NOT_MULTIMODAL, or UNKNOWN.",
+  message="Run this command and report the output: python <skill_dir>/scripts/detect_multimodal.py [<base_url> [<api_key> [<model_id|auto>]]]
+The script uses OPENAI_BASE_URL and OPENAI_API_KEY from the environment when arguments are omitted. When model_id is omitted or set to auto, it lists available models, probes likely multimodal candidates, and reports the selected model and result: MULTIMODAL, NOT_MULTIMODAL, or UNKNOWN.",
   fork_context=false
 )
 ```
