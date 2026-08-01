@@ -86,50 +86,52 @@ images, screenshots, diagrams, UI layout, PDFs, charts, rendered output, SVG, ca
 
 **Spawn workers for all non-trivial steps.** This reduces main-loop context and keeps the planner focused on coordination.
 
-For each plan step that involves file editing, command execution, or multi-step logic, call `multi_agent_v1__spawn_agent`.
+For each plan step that involves file editing, command execution, or multi-step logic, call multi_agent_v1__spawn_agent.
 
 **Text/code worker (non-visual tasks):**
-```
+`
 multi_agent_v1__spawn_agent(
-  message="<specific task instructions>",
+  message="This is a subagent task. Do NOT run the 7-step plan-guardian workflow. Just do the assigned task directly.\n\n<specific task instructions>",
   fork_context=false
 )
-```
+`
 
-**Multimodal worker (visual tasks, only when Step 0 = NOT_MULTIMODAL):**
-```
+**Visual worker (UI, frontend, beautification, screenshots) — when Step 0 = MULTIMODAL:**
+`
 multi_agent_v1__spawn_agent(
-  message="<specific task instructions>",
-  fork_context=false
-  # Do NOT override model. Always inherit parent model.
+  message="This is a subagent task. Do NOT run the 7-step plan-guardian workflow. Just do the assigned task directly.\n\n<specific task instructions>",
+  fork_context=false,
+  model="<detected multimodal model, e.g. mimo-v2.5>"
 )
-```
+`
+
+**Visual worker — when Step 0 = NOT_MULTIMODAL or UNKNOWN:**
+Same as text/code worker (inherit parent, no override).
+
+**How to determine the model name:** Use the selected field from the Step 0 detection script output (e.g., "selected": "mimo-v2.5" → model="mimo-v2.5").
 
 **Rules:**
 - Spawn one worker per plan step (or group small related steps).
 - Each worker receives ONLY: the plan step, deliverable description, and relevant file paths.
-- After spawning workers, call `multi_agent_v1__wait_agent(targets=[...])` to collect results.
+- After spawning workers, call multi_agent_v1__wait_agent(targets=[...]) to collect results.
 - If a worker fails, fix the issue and spawn a NEW worker.
-
-**Example parallel spawn:**
-```
-multi_agent_v1__spawn_agent(message="Step 1: Create file X with content Z", fork_context=false)
-multi_agent_v1__spawn_agent(message="Step 2: Run tests in directory A", fork_context=false)
-multi_agent_v1__wait_agent(targets=["<id1>", "<id2>"])
-```
 
 ### Step 5: Verify via Verifier Subagents - STRICT FUNCTIONAL VERIFICATION
 
 **Verification is MANDATORY. You MUST spawn a verifier for every completed step.**
 
-Verifier subagents MUST use a multimodal model when available (see Step 0 table).
+**Verifier model selection (based on Step 0):**
+- Step 0 = MULTIMODAL: use model="<detected multimodal model>" for ALL verifiers
+- Step 0 = NOT_MULTIMODAL or UNKNOWN: inherit parent (no override)
 
 **The verifier must perform ACTUAL functional testing, not just file existence checks.**
 
-**Standard verifier (when MULTIMODAL or UNKNOWN):**
-```
+**Verifier template:**
+`
 multi_agent_v1__spawn_agent(
-  message="You are a STRICT functional verifier. Your job is to BREAK the work, not approve it.
+  message="This is a subagent task. Do NOT run the 7-step plan-guardian workflow.
+
+You are a STRICT functional verifier. Your job is to BREAK the work, not approve it.
 
 **Task:** Verify the following artifact with ACTUAL functional testing.
 
@@ -140,83 +142,36 @@ multi_agent_v1__spawn_agent(
 - CRITERION 2: <description>
 
 **You MUST perform these verification steps:**
-
 1. READ: Actually read the file contents. Report the first 20 lines and last 20 lines.
 2. CHECK STRUCTURE: Verify all required sections, fields, keys exist.
 3. CHECK CONTENT: Verify values are correct, not placeholders, not empty.
-4. CHECK SYNTAX: If it's code/config, verify no syntax errors.
-5. FUNCTIONAL TEST: If possible, actually run/test the artifact:
-   - For code: run it and check output
-   - For configs: validate them
-   - For APIs: call them
-   - For servers: start them and test endpoints
-   - For frontend: take a screenshot and verify visually
+4. CHECK SYNTAX: If it is code/config, verify no syntax errors.
+5. FUNCTIONAL TEST: If possible, actually run/test the artifact.
 6. EDGE CASES: Look for missing error handling, empty values, wrong types.
 7. VISUAL CHECK (if multimodal): Take a screenshot and verify the UI looks correct.
 
 **Output Format:**
 For each criterion:
 - CRITERION N: PASS or FAIL
-- Evidence: <exact file content, line number, test output, or screenshot that proves PASS or FAIL>
-- Test performed: <what you actually did to verify>
+- Evidence: <exact evidence>
+- Test performed: <what you actually did>
 
-End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers and exact reasons)
+End with: VERDICT: ALL PASS or VERDICT: FAIL
 
-**CRITICAL: If you cannot perform functional testing, report FAIL with reason: 'Cannot verify - no functional test performed'. Do NOT approve based on file existence alone.**",
-  fork_context=false
+**CRITICAL: If you cannot perform functional testing, report FAIL.**",
+  fork_context=false,
+  model="<detected multimodal model>"  # omit this line when NOT_MULTIMODAL or UNKNOWN
 )
-```
-
-**Multimodal verifier (when NOT_MULTIMODAL, MUST override):**
-```
-multi_agent_v1__spawn_agent(
-  message="You are a STRICT functional verifier. Your job is to BREAK the work, not approve it.
-
-**Task:** Verify the following artifact with ACTUAL functional testing.
-
-**Artifact:** <path or description>
-
-**Acceptance Criteria:**
-- CRITERION 1: <description>
-- CRITERION 2: <description>
-
-**You MUST perform these verification steps:**
-
-1. READ: Actually read the file contents. Report the first 20 lines and last 20 lines.
-2. CHECK STRUCTURE: Verify all required sections, fields, keys exist.
-3. CHECK CONTENT: Verify values are correct, not placeholders, not empty.
-4. CHECK SYNTAX: If it's code/config, verify no syntax errors.
-5. FUNCTIONAL TEST: If possible, actually run/test the artifact:
-   - For code: run it and check output
-   - For configs: validate them
-   - For APIs: call them
-   - For servers: start them and test endpoints
-   - For frontend: take a screenshot and verify visually
-6. EDGE CASES: Look for missing error handling, empty values, wrong types.
-7. VISUAL CHECK (if multimodal): Take a screenshot and verify the UI looks correct.
-
-**Output Format:**
-For each criterion:
-- CRITERION N: PASS or FAIL
-- Evidence: <exact file content, line number, test output, or screenshot that proves PASS or FAIL>
-- Test performed: <what you actually did to verify>
-
-End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers and exact reasons)
-
-**CRITICAL: If you cannot perform functional testing, report FAIL with reason: 'Cannot verify - no functional test performed'. Do NOT approve based on file existence alone.**",
-  fork_context=false
-  # Do NOT override model. Always inherit parent model.
-)
-```
+`
 
 **Rules:**
-- Verifiers MUST have `fork_context=false` (memoryless).
+- Verifiers MUST have ork_context=false (memoryless).
 - Verifiers receive ONLY deliverables + criteria. Do NOT pass conversation history.
 - Each verifier independently reads the actual artifacts.
 - If a verifier returns FAIL, fix the issue and spawn a NEW verifier.
 - If two verifiers disagree, spawn a third. If conflict persists, treat as FAIL.
-- Phase 3 must be split by scope. Use multiple subagents (for example: API functional checks, UI functional checks, edge-case and error handling checks). Do not overload one subagent with all interactions.
-- Keep Phase 3 subagents small and time-bounded. Prefer fewer criteria per subagent and more subagents over a single long-running verifier.
+- Phase 3 must be split by scope. Use multiple subagents for different types of checks.
+- Keep Phase 3 subagents small and time-bounded.
 
 ### Step 6: Re-Plan if Needed
 - If any verifier returned FAIL, analyze the failure.

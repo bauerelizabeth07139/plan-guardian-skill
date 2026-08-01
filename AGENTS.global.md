@@ -98,11 +98,15 @@ Verification is split into 3 phases. Each phase uses a NEW subagent. Each subage
 
 
 
+**Verifier model selection (based on Step 0):**
+- Step 0 = MULTIMODAL: all verifiers use model="<detected multimodal model>"
+- Step 0 = NOT_MULTIMODAL or UNKNOWN: all verifiers inherit parent (no override)
+
 **Phase 1: READ & STRUCTURE (subagent 1)**
 
 ```
 
-multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 1: READ & STRUCTURE.
+multi_agent_v1__spawn_agent(message="This is a subagent task. Do NOT run the 7-step plan-guardian workflow.\nYou are a strict verifier - Phase 1: READ & STRUCTURE.
 
 
 
@@ -148,7 +152,7 @@ If reading many files, split into multiple Phase 1 subagents:
 
 ```
 
-multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 1a: READ FILES 1-3.
+multi_agent_v1__spawn_agent(message="This is a subagent task. Do NOT run the 7-step plan-guardian workflow.\nYou are a strict verifier - Phase 1a: READ FILES 1-3.
 
 
 
@@ -170,7 +174,7 @@ multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 1a: READ 
 
 
 
-multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 1b: READ FILES 4-6.
+multi_agent_v1__spawn_agent(message="This is a subagent task. Do NOT run the 7-step plan-guardian workflow.\nYou are a strict verifier - Phase 1b: READ FILES 4-6.
 
 
 
@@ -198,7 +202,7 @@ multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 1b: READ 
 
 ```
 
-multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 2: SYNTAX & CONNECTIONS.
+multi_agent_v1__spawn_agent(message="This is a subagent task. Do NOT run the 7-step plan-guardian workflow.\nYou are a strict verifier - Phase 2: SYNTAX & CONNECTIONS.
 
 
 
@@ -258,7 +262,7 @@ CRITICAL: Do NOT run the code. Only check syntax and connections.", fork_context
 
 ```
 
-multi_agent_v1__spawn_agent(message="You are a strict verifier - Phase 3: FUNCTIONAL TEST & VISUAL CHECK.
+multi_agent_v1__spawn_agent(message="This is a subagent task. Do NOT run the 7-step plan-guardian workflow.\nYou are a strict verifier - Phase 3: FUNCTIONAL TEST & VISUAL CHECK.
 
 
 
