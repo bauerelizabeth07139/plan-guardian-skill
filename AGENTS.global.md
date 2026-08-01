@@ -6,6 +6,13 @@
 
 
 
+## RULE 0: OUTPUT LANGUAGE AND ENCODING
+
+- Final user-facing output MUST match the user's language (Chinese/English/etc.).
+- Internal reasoning (chain-of-thought) may stay in the model's preferred language, but all deliverables, messages, reports, and UI-facing text must be in the user's language.
+- Emoji is allowed, but explicitly prevent garbled output. Ensure environment/file encoding supports emoji (prefer UTF-8). If unsure, sanitize or use ASCII-safe fallback to avoid mojibake or corrupted CJK characters.
+- If a file or environment may have limited Unicode support, normalize non-ASCII to ASCII equivalents before emitting.
+
 ## RULE 1: ALWAYS SPAWN SUBAGENTS
 
 
@@ -91,6 +98,7 @@ Verification is split into 3 phases. Each phase uses a NEW subagent. Each subage
 - The previous phase summary (if applicable)
 
 - Necessary instructions
+- Output language must match the user's language. Emoji is allowed, but ensure UTF-8 safety and avoid garbled/mojibake output; use ASCII-safe fallback if encoding is uncertain.
 
 
 

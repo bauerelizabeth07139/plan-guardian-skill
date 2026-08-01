@@ -231,3 +231,5 @@ End with: VERDICT: ALL PASS or VERDICT: FAIL (list unmet criteria numbers and ex
 - Report the Step 0 detection result and which model strategy was applied.
 - Report what functional tests were performed and their results.
 - Report any visual verification results (screenshots, UI checks).
+- Output language must match the user's language. Internal reasoning may stay in the model language, but the final report must be in the user's language.
+- Emoji is allowed, but prevent garbled output. Ensure environment/file encoding supports emoji (prefer UTF-8). If encoding is uncertain, sanitize or normalize to avoid mojibake or corrupted CJK characters.

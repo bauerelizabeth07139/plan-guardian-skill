@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.1.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-2.2.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -228,6 +228,13 @@ Each subagent returns a **summary**, not full file content. Pass summaries to th
 | Maximum | 360,000 (6 min) |  -  |
 
 ---
+
+## Emoji and encoding policy
+
+- Emoji is allowed.
+- Explicitly prevent garbled output: ensure UTF-8 encoding on files, terminals, and logs.
+- If the rendering environment is unknown, prefer ASCII-safe wording, or normalize non-ASCII characters to ASCII equivalents.
+- For Chinese/CJK content, verify CJK encoding (UTF-8) to avoid mojibake; when uncertain, use sanitized ASCII-safe fallbacks.
 
 ## Structure
 
