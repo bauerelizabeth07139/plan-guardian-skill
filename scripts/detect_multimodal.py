@@ -270,31 +270,34 @@ def main() -> int:
 
     env_base = try_resolve_env_base(raw_base)
 
+    # Explicit model mode
     if explicit and explicit.lower() != "auto":
         env_ok = check(env_base, api_key, explicit)
         used_base = env_base
-
         model_ep = resolve_model_endpoint(explicit)
         model_ok = False
         if model_ep and model_ep != env_base:
             model_ok = check(model_ep, api_key, explicit)
             if model_ok:
                 used_base = model_ep
-
-        status = "MULTIMODAL" if (env_ok or model_ok) else "NOT_MULTIMODAL"
+        mm = env_ok or model_ok
         print(json.dumps({
             "mode": "explicit",
-            "selected": explicit,
-            "multimodal": env_ok or model_ok,
-            "env_base": env_base,
-            "model_endpoint": model_ep or None,
             "used_base": used_base,
-            "status": status,
+            "models": [{"id": explicit, "multimodal": mm}],
+            "selected": explicit if mm else None,
+            "status": "MULTIMODAL" if mm else "NOT_MULTIMODAL",
         }))
-        return 0 if (env_ok or model_ok) else 1
+        return 0 if mm else 1
 
+    # Auto mode: list all models, probe each one
     model_ids = list_models(env_base, api_key)
-    candidates = choose_candidates(model_ids)
+
+    # Build candidate list: config model first, then listed models, then well-known
+    _, _cx_key, cx_model = load_codex_config()
+    candidates = []
+    if cx_model:
+        candidates.append(cx_model)
     for m in model_ids:
         if m not in candidates:
             candidates.append(m)
@@ -302,28 +305,36 @@ def main() -> int:
         if m not in candidates:
             candidates.append(m)
 
-    # Probe model from ~/.codex/config.toml if available
-    _, _cx_key, cx_model = load_codex_config()
-    if cx_model and cx_model not in candidates:
-        candidates.insert(0, cx_model)
-
-    tested: List[str] = []
+    # Probe ALL candidates
+    results = []
+    best_mm = None
     for m in candidates:
-        ok_env = check(env_base, api_key, m)
-        tested.append(m)
-        if ok_env:
-            print(json.dumps({"mode": "auto", "selected": m, "listed": bool(model_ids), "used_base": env_base, "tested": tested, "status": "MULTIMODAL"}))
-            return 0
+        ok = check(env_base, api_key, m, timeout=30)
+        results.append({"id": m, "multimodal": ok})
+        if ok and best_mm is None:
+            best_mm = m
 
-        model_ep = resolve_model_endpoint(m)
-        if model_ep and model_ep != env_base:
-            ok_model = check(model_ep, api_key, m)
-            if ok_model:
-                print(json.dumps({"mode": "auto", "selected": m, "listed": bool(model_ids), "used_base": model_ep, "tested": tested, "status": "MULTIMODAL"}))
-                return 0
+    # Also try model-specific endpoints for non-multimodal models
+    for entry in results:
+        if not entry["multimodal"]:
+            ep = resolve_model_endpoint(entry["id"])
+            if ep and ep != env_base:
+                if check(ep, api_key, entry["id"], timeout=30):
+                    entry["multimodal"] = True
+                    entry["endpoint"] = ep
+                    if best_mm is None:
+                        best_mm = entry["id"]
 
-    print(json.dumps({"mode": "auto", "selected": None, "listed": bool(model_ids), "used_base": env_base, "tested": tested, "status": "NOT_MULTIMODAL"}))
-    return 1
+    status = "MULTIMODAL" if best_mm else "NOT_MULTIMODAL"
+    print(json.dumps({
+        "mode": "auto",
+        "used_base": env_base,
+        "listed": bool(model_ids),
+        "models": results,
+        "selected": best_mm,
+        "status": status,
+    }))
+    return 0 if best_mm else 1
 
 
 if __name__ == "__main__":

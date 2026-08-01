@@ -45,8 +45,26 @@ The script automatically:
 - Reads API key from ~/.codex/auth.json
 - Reads base URL from ~/.codex/config.toml (under [model_providers.custom])
 - Reads model name from ~/.codex/config.toml (top-level model = "...")
-- Probes each model with a real image+text chat completion request
-- Reports MULTIMODAL / NOT_MULTIMODAL / UNKNOWN with the selected model name
+- Lists ALL available models from the endpoint
+- Probes EACH model with a real image+text chat completion request
+- Returns a JSON with all models and their multimodal status
+
+**Output format:**
+`json
+{
+  "mode": "auto",
+  "used_base": "http://127.0.0.1:57321/v1",
+  "models": [
+    {"id": "mimo-v2.5", "multimodal": true},
+    {"id": "mimo-v2.5-pro", "multimodal": false},
+    {"id": "mimo-v2.5-asr", "multimodal": false}
+  ],
+  "selected": "mimo-v2.5",
+  "status": "MULTIMODAL"
+}
+`
+
+Use selected as the multimodal model for visual workers/verifiers. Use any multimodal: false model for text/code tasks if needed.
 
 If credentials are not available or discovery fails, the script reports UNKNOWN.
 
