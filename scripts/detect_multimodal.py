@@ -10,11 +10,25 @@ PROVIDER_ENDPOINTS = ["https://api.xiaomimimo.com/v1"]
 MODEL_ENDPOINT_HINTS = {
     "mimo": "https://api.xiaomimimo.com/v1",
 }
+DEFAULT_LOCAL_PROXY = "http://127.0.0.1:8788/v1"
 
 
 def get_config(base_url: str, api_key: str) -> tuple:
-    base = (base_url or os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_KEY_BASE_URL") or "").strip()
-    key = (api_key or os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_SECRET_KEY") or "").strip()
+    base = (
+        base_url
+        or os.getenv("OPENAI_BASE_URL")
+        or os.getenv("OPENAI_API_KEY_BASE_URL")
+        or os.getenv("MIMO_BASE_URL")
+        or os.getenv("MIMO_API_BASE")
+        or ""
+    ).strip()
+    key = (
+        api_key
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("OPENAI_SECRET_KEY")
+        or os.getenv("MIMO_API_KEY")
+        or ""
+    ).strip()
     return base, key
 
 
@@ -45,7 +59,7 @@ def try_resolve_env_base(base_url: str) -> str:
     for ep in PROVIDER_ENDPOINTS:
         if is_api_like(ep):
             return ep
-    return base_url
+    return base_url or DEFAULT_LOCAL_PROXY
 
 
 def resolve_model_endpoint(model: str) -> str:
@@ -167,8 +181,8 @@ def choose_candidates(model_ids: List[str]) -> List[str]:
 
 
 def main() -> int:
-    if len(sys.argv) < 2 or len(sys.argv) > 4:
-        print("Usage: python detect_multimodal.py <base_url> [<api_key> [<model_id|auto>]]")
+    if len(sys.argv) > 4:
+        print("Usage: python detect_multimodal.py [<base_url> [<api_key> [<model_id|auto>]]]")
         return 2
 
     raw_base = sys.argv[1] if len(sys.argv) >= 2 else ""
@@ -176,18 +190,16 @@ def main() -> int:
     explicit = sys.argv[3] if len(sys.argv) == 4 else ""
 
     raw_base, api_key = get_config(raw_base, raw_key)
-    if not raw_base or not api_key:
-        print(json.dumps({"mode": "env", "status": "UNKNOWN", "reason": "missing OPENAI_BASE_URL or OPENAI_API_KEY"}))
+    if not api_key:
+        print(json.dumps({"mode": "env", "status": "UNKNOWN", "reason": "missing API key (OPENAI_API_KEY or MIMO_API_KEY)"}))
         return 2
 
     env_base = try_resolve_env_base(raw_base)
 
     if explicit and explicit.lower() != "auto":
-        # Check on the environment-resolved base first
         env_ok = check(env_base, api_key, explicit)
         used_base = env_base
 
-        # Also check model-specific endpoint if environment resolved endpoint fails or differs
         model_ep = resolve_model_endpoint(explicit)
         model_ok = False
         if model_ep and model_ep != env_base:
