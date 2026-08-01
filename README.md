@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.4.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-2.5.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -177,6 +177,13 @@ python scripts/validate_skill.py .
 - **Write expected results BEFORE testing  -  do not change after seeing actual**
 
 ---
+
+## Codex++ integration (Plan Guardian)
+
+- Designed for use inside the Codex (Codex++) environment.
+- Step 0 detection is integrated with the local Codex++ proxy (mimo2codex). When no base URL is configured, it defaults to `http://127.0.0.1:8788/v1`.
+- The detection flow validates the environment endpoint first, then validates the model-specific endpoint when known (for example MiMo models).
+- Use the quick-check examples below to confirm your Codex++ setup before running longer workflows.
 
 ## Model Selection
 
