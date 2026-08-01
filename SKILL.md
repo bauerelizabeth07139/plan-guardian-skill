@@ -33,9 +33,11 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 
 ### Step 0: Detect Model Capabilities
 
-Before any planning, determine which models support multimodal (image) input.
+**CRITICAL: You MUST run the detection script via a subagent. Do NOT declare MULTIMODAL based on available tools, skills, or environment inspection. The script probes the actual model API to verify image input support. Without running the script, Step 0 is INCOMPLETE.**
 
-**Preferred method (available-model discovery + multimodal probing):**
+Before any planning, determine which models support multimodal (image) input by running detect_multimodal.py.
+
+**Method: run the detection script (REQUIRED, not optional):**
 
 Spawn a diagnostic subagent to:
 1. Detect credentials from the environment when explicit values are not provided (OPENAI_BASE_URL/OPENAI_API_KEY or MIMO_BASE_URL/MIMO_API_KEY for Codex++ setups). If these are missing, fall back to reading the Codex++ key file at ~/.mimo2codex/.env. When no base URL is configured, default to the local Codex++ proxy at http://127.0.0.1:8788/v1.

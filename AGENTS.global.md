@@ -360,7 +360,7 @@ For the MAIN agent, for EVERY user message, follow these steps:
 
 
 
-1. **Step 0**: Spawn diagnostic subagent to detect multimodal capabilities (use parent model, no override)
+1. **Step 0**: Spawn diagnostic subagent to run detect_multimodal.py script (use parent model, no override). Do NOT declare MULTIMODAL based on tool/skill availability - the script must probe the actual model API.
 
 2. **Step 1**: Clarify intent
 
