@@ -33,41 +33,24 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 
 ### Step 0: Detect Model Capabilities
 
-**CRITICAL: You MUST run the detection script via a subagent. Do NOT declare MULTIMODAL based on available tools, skills, or environment inspection. The script probes the actual model API to verify image input support. Without running the script, Step 0 is INCOMPLETE.**
+**CRITICAL: You MUST execute the script below using exec_command or spawn_agent. Do NOT declare MULTIMODAL based on available tools, skills, environment inspection, or capability guessing. The script probes the actual model API with a real image payload. Without running the script, Step 0 is INCOMPLETE and the result is INVALID.**
 
-Before any planning, determine which models support multimodal (image) input by running detect_multimodal.py.
+Run the detection script to probe the actual model API:
 
-**Method: run the detection script (REQUIRED, not optional):**
+`ash
+python <skill_dir>/scripts/detect_multimodal.py
+`
 
-Spawn a diagnostic subagent to:
-1. Detect credentials from the environment when explicit values are not provided (OPENAI_BASE_URL/OPENAI_API_KEY or MIMO_BASE_URL/MIMO_API_KEY for Codex++ setups). If these are missing, fall back to reading the Codex++ key file at ~/.mimo2codex/.env. When no base URL is configured, default to the local Codex++ proxy at http://127.0.0.1:8788/v1.
-2. Always validate the environment endpoint first. If it is not a working API endpoint, auto-resolve to a known provider endpoint when possible (provider-agnostic; depends on configured backend).
-3. When an explicit model_id is provided, also probe the model-specific endpoint (if known) in addition to the environment endpoint, so both environment capability and model capability are checked.
-2. List available models from the configured endpoint.
-3. Filter plausible multimodal candidates (for example: models containing `4o`, `4-vision`, `vision`, `omni`, or `multimodal`).
-4. Probe each candidate with a minimal image+text request until one succeeds.
-5. If discovery misses, also probe well-known multimodal models (for example: `gpt-4o`, `gpt-4o-mini`, `gpt-4-vision-preview`, `o4-mini`, `claude-3-haiku-20240307`) when present.
-6. Also test remaining listed models so unknown models are not skipped.
-7. Report the detected model and result (MULTIMODAL / NOT_MULTIMODAL / UNKNOWN).
+The script automatically:
+- Reads API key from ~/.codex/auth.json
+- Reads base URL from ~/.codex/config.toml (under [model_providers.custom])
+- Reads model name from ~/.codex/config.toml (top-level model = "...")
+- Probes each model with a real image+text chat completion request
+- Reports MULTIMODAL / NOT_MULTIMODAL / UNKNOWN with the selected model name
 
-If credentials are not available or discovery fails, fall back to the parent model and report UNKNOWN.
+If credentials are not available or discovery fails, the script reports UNKNOWN.
 
-```
-multi_agent_v1__spawn_agent(
-  message="This is a subagent task. Do NOT run the 7-step plan-guardian workflow. Just do the assigned task directly.
-
-Run this command and report the output: python <skill_dir>/scripts/detect_multimodal.py [<base_url> [<api_key> [<model_id|auto>]]]
-When no arguments are provided, the script automatically reads:
-- API key from ~/.codex/auth.json (OPENAI_API_KEY field)
-- Base URL from ~/.codex/config.toml (under [model_providers.custom] section)
-- Model name from ~/.codex/config.toml (model = "..." field)
-The script also reads OPENAI_BASE_URL and OPENAI_API_KEY from the environment, and falls back to ~/.mimo2codex/.env when those are missing. When model_id is omitted or set to auto, it lists available models, probes likely multimodal candidates, and probes well-known models as a fallback. Report the selected model and result: MULTIMODAL, NOT_MULTIMODAL, or UNKNOWN.",
-  fork_context=false
-)
-
-```
-
-> **Note:** When running inside the Codex desktop app with a custom provider (e.g., Codex++ proxy), the script automatically discovers credentials from `~/.codex/config.toml` and `~/.codex/auth.json`. No manual arguments are needed. The Codex++ proxy port is dynamic and read from config.toml at runtime.
+> **Note:** The Codex++ proxy port is dynamic and read from config.toml at runtime. No manual arguments needed.
 
 
 **Store the result. It governs ALL worker/verifier model selection below.**

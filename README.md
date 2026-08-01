@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="./assets/logo.svg" width="120" alt="Plan Guardian"/>
 </p>
 
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.8.1-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-2.9.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
