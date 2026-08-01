@@ -1,5 +1,6 @@
-﻿import json, os, sys, urllib.error, urllib.request
-from typing import List
+﻿import json, os, re, sys, urllib.error, urllib.request
+from pathlib import Path
+from typing import Dict, List, Tuple
 
 TINY_PNG_B64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4"
@@ -11,9 +12,34 @@ MODEL_ENDPOINT_HINTS = {
     "mimo": "https://api.xiaomimimo.com/v1",
 }
 DEFAULT_LOCAL_PROXY = "http://127.0.0.1:8788/v1"
+CODEX_PP_DOTENV = Path.home() / ".mimo2codex" / ".env"
 
 
-def get_config(base_url: str, api_key: str) -> tuple:
+def load_codexpp_dotenv() -> Tuple[str, str]:
+    base = ""
+    key = ""
+    try:
+        if not CODEX_PP_DOTENV.exists():
+            return base, key
+        for raw in CODEX_PP_DOTENV.read_text("utf-8", errors="ignore").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            line = line.removeprefix("export ")
+            m = re.match(r"([A-Za-z_][A-Za-z0-9_]*)=(.*)", line)
+            if not m:
+                continue
+            k, v = m.group(1), m.group(2).strip().strip('"').strip("'")
+            if k == "MIMO_BASE_URL" and not base:
+                base = v
+            elif k == "MIMO_API_KEY" and not key:
+                key = v
+    except Exception:
+        pass
+    return base, key
+
+
+def get_config(base_url: str, api_key: str) -> Tuple[str, str]:
     base = (
         base_url
         or os.getenv("OPENAI_BASE_URL")
@@ -29,6 +55,12 @@ def get_config(base_url: str, api_key: str) -> tuple:
         or os.getenv("MIMO_API_KEY")
         or ""
     ).strip()
+
+    if not base or not key:
+        dot_base, dot_key = load_codexpp_dotenv()
+        base = base or dot_base
+        key = key or dot_key
+
     return base, key
 
 
@@ -191,7 +223,7 @@ def main() -> int:
 
     raw_base, api_key = get_config(raw_base, raw_key)
     if not api_key:
-        print(json.dumps({"mode": "env", "status": "UNKNOWN", "reason": "missing API key (OPENAI_API_KEY or MIMO_API_KEY)"}))
+        print(json.dumps({"mode": "env", "status": "UNKNOWN", "reason": "missing API key (checked env and Codex++ .env)"}))
         return 2
 
     env_base = try_resolve_env_base(raw_base)
@@ -219,7 +251,6 @@ def main() -> int:
         }))
         return 0 if (env_ok or model_ok) else 1
 
-    # auto mode
     model_ids = list_models(env_base, api_key)
     candidates = choose_candidates(model_ids)
     for m in model_ids:

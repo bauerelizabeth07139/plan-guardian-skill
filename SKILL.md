@@ -36,7 +36,7 @@ Before any planning, determine which models support multimodal (image) input.
 **Preferred method (available-model discovery + multimodal probing):**
 
 Spawn a diagnostic subagent to:
-1. Detect credentials from the environment when explicit values are not provided (OPENAI_BASE_URL/OPENAI_API_KEY or MIMO_BASE_URL/MIMO_API_KEY for Codex++ setups). When no base URL is configured, default to the local Codex++ proxy at http://127.0.0.1:8788/v1.
+1. Detect credentials from the environment when explicit values are not provided (OPENAI_BASE_URL/OPENAI_API_KEY or MIMO_BASE_URL/MIMO_API_KEY for Codex++ setups). If these are missing, fall back to reading the Codex++ key file at ~/.mimo2codex/.env. When no base URL is configured, default to the local Codex++ proxy at http://127.0.0.1:8788/v1.
 2. Always validate the environment endpoint first. If it is not a working API endpoint, auto-resolve to a known provider endpoint when possible (for example Xiaomi MiMo -> https://api.xiaomimimo.com/v1).
 3. When an explicit model_id is provided, also probe the model-specific endpoint (if known) in addition to the environment endpoint, so both environment capability and model capability are checked.
 2. List available models from the configured endpoint.

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.5.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-2.6.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -205,10 +205,9 @@ python work\repos\plan-guardian-skill\scripts\detect_multimodal.py
 
 Codex++ quick check (via local mimo2codex proxy; defaults to 127.0.0.1:8788 when no base URL is set):
 ```
-$env:MIMO_BASE_URL = "http://127.0.0.1:8788/v1"
-$env:MIMO_API_KEY  = "sk-REDACTED"
 python work\repos\plan-guardian-skill\scripts\detect_multimodal.py
 ```
+If the key is not in your shell environment, the script will try reading it from the Codex++ key file at `~/.mimo2codex/.env` automatically.
 
 ```
 Step 0 result:
