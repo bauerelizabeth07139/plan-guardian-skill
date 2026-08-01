@@ -364,7 +364,7 @@ For the MAIN agent, for EVERY user message, follow these steps:
 
 
 
-1. **Step 0**: Run detect_multimodal.py script directly via exec_command or spawn_agent. Do NOT check tools/skills - the script probes the real model API.
+1. **Step 0** (first message only): Run detect_multimodal.py via exec_command or spawn_agent. Cache the result (selected model + status). On subsequent messages, skip Step 0 and reuse cached result.
 
 2. **Step 1**: Clarify intent
 

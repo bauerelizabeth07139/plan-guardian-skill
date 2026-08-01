@@ -11,7 +11,7 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 
 ## Trigger Rule
 
-**This skill MUST activate on every single user message received by the MAIN planning agent.** No exceptions for simple questions, short answers, casual conversation, quick lookups, or any task that seems trivial.
+**This skill MUST activate on every single user message received by the MAIN planning agent.** No exceptions. Step 0 (model detection) runs ONLY on the first message; subsequent messages skip Step 0 and reuse the cached result.
 
 **Scope restriction: This 7-step workflow applies ONLY to the main planning agent.** Spawned subagents (workers, verifiers, diagnostics) MUST NOT run this workflow. Subagents should execute their assigned task directly and return results. When spawning a subagent, include "This is a subagent task. Do NOT run the 7-step plan-guardian workflow. Just do the assigned task directly." in the message.
 
@@ -31,7 +31,9 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 
 ## Required Workflow
 
-### Step 0: Detect Model Capabilities
+### Step 0: Detect Model Capabilities (ONCE per conversation)
+
+**Run this step ONLY at the start of the conversation (first user message).** Cache the result and reuse it for all subsequent messages in the same conversation. Do NOT re-run the detection script on follow-up messages.
 
 **CRITICAL: You MUST execute the script below using exec_command or spawn_agent. Do NOT declare MULTIMODAL based on available tools, skills, environment inspection, or capability guessing. The script probes the actual model API with a real image payload. Without running the script, Step 0 is INCOMPLETE and the result is INVALID.**
 
@@ -70,6 +72,7 @@ If credentials are not available or discovery fails, the script reports UNKNOWN.
 
 > **Note:** The Codex++ proxy port is dynamic and read from config.toml at runtime. No manual arguments needed.
 
+**Caching rule:** After Step 0 completes, remember the selected model name and status. For all subsequent user messages in this conversation, skip Step 0 and reuse the cached result directly.
 
 **Store the result. It governs ALL worker/verifier model selection below.**
 
