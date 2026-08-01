@@ -63,6 +63,9 @@ The script automatically reads credentials from ~/.codex/config.toml and ~/.code
 | NOT_MULTIMODAL | Verifiers skip visual checks, do text/code verification only |
 | UNKNOWN | Verifiers skip visual checks |
 
+> **Known Limitation:** spawn_agent only accepts built-in Codex models (gpt-5.6-sol, gpt-5.6-terra, etc.). Custom models from Codex++ proxy (e.g., mimo-v2.5) cannot be used as spawn_agent model overrides. All subagents must inherit the parent model. Step 0 result is for capability awareness only.
+
+
 ### Step 1: Clarify Intent
 - Restate the user request in one paragraph.
 - Identify the core deliverable.

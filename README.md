@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-3.0.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-3.1.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -286,6 +286,12 @@ plan-guardian-skill/
 10. Estimate context before spawning subagents  -  do not exceed 258k token limit
 
 ---
+
+## Known Limitations
+
+- spawn_agent only supports built-in Codex models (gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, gpt-5.5, gpt-5.2). Custom models from Codex++ proxy cannot be used as model overrides.
+- All subagents inherit the parent model. Step 0 detection result is for capability awareness only (whether to attempt visual checks).
+- This is a Codex app limitation, not a skill issue.
 
 ## License
 
