@@ -5,6 +5,7 @@ TINY_PNG_B64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4"
     "2mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
 )
+WELL_KNOWN = ["gpt-4o", "gpt-4o-mini", "gpt-4-vision-preview", "o4-mini", "claude-3-haiku-20240307"]
 
 
 def get_config(base_url: str, api_key: str) -> tuple:
@@ -32,11 +33,11 @@ def check(base_url: str, api_key: str, model: str, timeout: int = 20) -> bool:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.status == 200
     except urllib.error.HTTPError as exc:
-        if exc.code in (400, 404, 415):
+        if exc.code in (400, 404, 415, 422):
             try:
                 body = json.loads(exc.read().decode("utf-8"))
                 msg = ((body.get("error") or {}).get("message") or "").lower()
-                if "image" in msg or "vision" in msg or "multimodal" in msg:
+                if any(k in msg for k in ["image", "vision", "multimodal", "does not exist", "not found"]):
                     return False
             except Exception:
                 pass
@@ -57,10 +58,30 @@ def list_models(base_url: str, api_key: str, timeout: int = 20) -> List[str]:
     return [str((it.get("id") or "")).strip() for it in items if it.get("id")]
 
 
+def score_model(m: str) -> int:
+    ml = m.lower()
+    s = 0
+    if "4o" in ml:
+        s += 4
+    if "4-vision" in ml:
+        s += 4
+    if "vision" in ml:
+        s += 3
+    if "omni" in ml:
+        s += 2
+    if "multimodal" in ml:
+        s += 2
+    return s
+
+
 def choose_candidates(model_ids: List[str]) -> List[str]:
-    preferred = [m for m in model_ids if any(k in m.lower() for k in ["4o", "4-vision", "vision", "omni", "multimodal"])]
-    if preferred:
-        return preferred
+    present = [m for m in model_ids if m.lower() in [w.lower() for w in WELL_KNOWN]]
+    rest = [m for m in model_ids if m not in present]
+    preferred = [m for m in rest if any(k in m.lower() for k in ["4o", "4-vision", "vision", "omni", "multimodal"])]
+    preferred.sort(key=score_model, reverse=True)
+    ordered = present + preferred
+    if ordered:
+        return ordered
     return model_ids
 
 
@@ -94,6 +115,12 @@ def main() -> int:
         return 2
 
     candidates = choose_candidates(model_ids)
+
+    # also ensure well-known ids are probed even if not in /models
+    for m in WELL_KNOWN:
+        if m not in candidates:
+            candidates.append(m)
+
     tested: List[str] = []
     for m in candidates:
         try:

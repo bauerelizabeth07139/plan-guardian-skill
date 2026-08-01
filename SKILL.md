@@ -33,21 +33,22 @@ Every request goes through the full 7-step workflow. No shortcuts, no exceptions
 
 Before any planning, determine which models support multimodal (image) input.
 
-**Preferred method (available-model discovery):**
+**Preferred method (available-model discovery + multimodal probing):**
 
 Spawn a diagnostic subagent to:
-1. Detect credentials from the environment when explicit values are not provided.
+1. Detect credentials from the environment when explicit values are not provided (OPENAI_BASE_URL and OPENAI_API_KEY).
 2. List available models from the configured endpoint.
 3. Filter plausible multimodal candidates (for example: models containing `4o`, `4-vision`, `vision`, `omni`, or `multimodal`).
 4. Probe each candidate with a minimal image+text request until one succeeds.
-5. Report the detected model and result (MULTIMODAL / NOT_MULTIMODAL / UNKNOWN).
+5. If discovery misses, also probe well-known multimodal models (for example: `gpt-4o`, `gpt-4o-mini`, `gpt-4-vision-preview`, `o4-mini`, `claude-3-haiku-20240307`) when present.
+6. Report the detected model and result (MULTIMODAL / NOT_MULTIMODAL / UNKNOWN).
 
 If credentials are not available or discovery fails, fall back to the parent model and report UNKNOWN.
 
 ```
 multi_agent_v1__spawn_agent(
   message="Run this command and report the output: python <skill_dir>/scripts/detect_multimodal.py [<base_url> [<api_key> [<model_id|auto>]]]
-The script uses OPENAI_BASE_URL and OPENAI_API_KEY from the environment when arguments are omitted. When model_id is omitted or set to auto, it lists available models, probes likely multimodal candidates, and reports the selected model and result: MULTIMODAL, NOT_MULTIMODAL, or UNKNOWN.",
+The script uses OPENAI_BASE_URL and OPENAI_API_KEY from the environment when arguments are omitted. When model_id is omitted or set to auto, it lists available models, probes likely multimodal candidates, and probes well-known models as a fallback. Report the selected model and result: MULTIMODAL, NOT_MULTIMODAL, or UNKNOWN.",
   fork_context=false
 )
 ```
