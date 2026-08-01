@@ -5,16 +5,19 @@ These instructions apply to every file in this repository.
 
 ## Execution Policy
 - Keep the main planning loop lightweight.
-- Delegate implementation, file inspection, builds, and test execution to subagents whenever a task touches multiple files, runs commands, or requires long context.
-- Never self-verify. Use memoryless verifier subagents for acceptance checks.
+- Delegate implementation to worker subagents.
+- Delegate verification to verifier subagents (fork_context=false).
+- Never self-verify.
 
 ## Model Policy
-- Text/code tasks: inherit parent model.
-- Visual tasks (images, UI, frontend, screenshots, beautification, diagrams, PDFs): use the multimodal model discovered by Step 0 when available (MULTIMODAL). Otherwise inherit parent.
-- Step 0 detection subagent: always uses parent model (no override).
-- Step 0 should discover available models when credentials are available, probe likely multimodal candidates, and fall back to UNKNOWN/parent when discovery is not possible.
-- Subagents MUST NOT run the 7-step plan-guardian workflow. They execute assigned tasks directly.
+- All subagents inherit the parent model. Never override model in spawn_agent calls.
+- Step 0 detection result is for capability awareness only (whether to attempt visual checks).
+- Step 0 runs once per conversation, result is cached for reuse.
+
+## Worker vs Verifier
+- **Workers**: receive task + deliverable. Do the implementation. No acceptance criteria.
+- **Verifiers**: receive artifact + acceptance criteria. Check the work. Memoryless (fork_context=false).
 
 ## Context Minimization
-- Pass file paths and acceptance criteria to subagents instead of pasting long content into the planner.
-- Return structured results only: paths, artifacts, and PASS/FAIL summaries.
+- Pass file paths and task descriptions to subagents, not full file contents.
+- Return structured results: paths, artifacts, PASS/FAIL summaries.

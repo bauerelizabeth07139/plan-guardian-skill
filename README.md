@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.12.0-blue" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-3.0.0-blue" alt="Version"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License"/>
   <img src="https://img.shields.io/badge/Codex-Skill-purple" alt="Codex Skill"/>
   <img src="https://img.shields.io/badge/Platform-Codex-black" alt="Platform"/>
@@ -31,7 +31,7 @@ Plan Guardian is a **Codex skill** that wraps every user request in a strict 7-s
 | **Worker Delegation** | Implementation is delegated to spawned worker subagents, keeping the main loop lightweight |
 | **3-Phase Verification** | Each verification step uses 3 separate subagents (READ & STRUCTURE -> SYNTAX & CONNECTIONS -> FUNCTIONAL TEST & VISUAL CHECK) |
 | **Context-Aware Splitting** | Large file sets are split across multiple subagents to stay within the 258k token limit |
-| **Multimodal Detection** | Step 0 auto-discovers credentials from Codex config (~/.codex/auth.json + config.toml), probes for multimodal support, and selects the best match; falls back to the parent when credentials are not available |
+| **Multimodal Detection** | Step 0 auto-discovers credentials from Codex config, probes ALL models for multimodal support, returns full inventory; result is for capability awareness (visual checks), not model selection |
 | **FAIL -> Fix -> Re-Verify** | When verification fails, a fix plan is created, executed by a new worker, and re-verified (up to 5 cycles) |
 
 ### Why Use It?
@@ -51,7 +51,7 @@ Complex tasks fail silently when plans are loose and verification is shallow. Pl
 - **Strict Planning**  -  Every request starts with a numbered plan, dependencies, and acceptance criteria
 - **Subagent-First**  -  Main loop stays lightweight; workers and verifiers handle the heavy lifting
 - **3-Phase Verification**  -  Independent subagents verify each phase with zero prior context
-- **Multimodal-Aware**  -  Visual tasks use multimodal models when detected; Step 0 auto-reads Codex config for credential discovery
+- **Multimodal-Aware**  -  Step 0 probes all models for capability; verifiers include visual checks when supported
 - **FAIL -> Fix -> Re-Verify**  -  When verification fails, a fix plan is created and re-verified (up to 5 cycles)
 - **Context-Aware**  -  Large tasks are split across multiple subagents to stay within the 258k token limit
 
@@ -165,16 +165,18 @@ python scripts/validate_skill.py .
 
 ### Worker Subagents
 - Implement, build, fix, edit, inspect files, run tests
-- **Text/code tasks**: spawn WITHOUT model override (inherits parent)
-- **Visual tasks** (images, UI, frontend, screenshots, diagrams, PDFs): spawn WITH model override when Step 0 = NOT_MULTIMODAL
+- Receive ONLY: task description + deliverable + file paths
+- Do NOT receive acceptance criteria or verification instructions
+- Inherit parent model (no model override)
 
-### Verifier Subagents (3 Phases)
-- **Phase 1 (READ & STRUCTURE)**: Read files, check required fields, verify values
-- **Phase 2 (SYNTAX & CONNECTIONS)**: Check syntax, bindings, event handlers, APIs, imports, routes
-- **Phase 3 (FUNCTIONAL TEST & VISUAL CHECK)**: Split by scope (functional areas or interaction groups). Run artifact, interact with elements, screenshot each interface, compare to pre-written expectations. Keep each subagent small and time-bounded.
-- Each phase is a separate subagent with only: acceptance criteria + previous phase summary
-- **ALWAYS use multimodal model when available**
-- **Write expected results BEFORE testing  -  do not change after seeing actual**
+### Verifier Subagents
+- Check artifacts against acceptance criteria from Step 3
+- Receive ONLY: artifact path + acceptance criteria
+- Memoryless (fork_context=false) - no conversation history
+- Inherit parent model (no model override)
+- When Step 0 = MULTIMODAL AND task involves UI/frontend: include visual/screenshot checks
+- Split verification by scope for large tasks (e.g., code verifier + UI verifier)
+- Write expected results BEFORE testing
 
 ---
 
@@ -187,7 +189,13 @@ python scripts/validate_skill.py .
 
 ## Model Selection
 
-Step 0 uses available-model discovery by default: list candidates from the configured endpoint, probe for multimodal support, and prefer the best match. The script automatically reads credentials from ~/.codex/auth.json (API key) and ~/.codex/config.toml (base URL, model name) when running inside the Codex desktop app with a custom provider (e.g., Codex++ proxy). The Codex++ proxy port is dynamic and read from config.toml at runtime.
+**All subagents inherit the parent model.** Never override model in spawn_agent calls.
+
+Step 0 detection is for **capability awareness only**:
+- MULTIMODAL -> verifiers MAY include visual/screenshot checks for UI tasks
+- NOT_MULTIMODAL or UNKNOWN -> verifiers skip visual checks, do text/code verification only
+
+The script reads credentials from ~/.codex/auth.json and ~/.codex/config.toml, probes ALL available models, and returns a JSON with each model's multimodal status.
 
 Credential resolution order:
 1. Command-line arguments
@@ -200,22 +208,12 @@ Quick check:
 python scripts/detect_multimodal.py
 `
 
-`
-Step 0 result:
- MULTIMODAL     -> Visual/verification subagents use detected multimodal model
- NOT_MULTIMODAL -> All subagents inherit parent model
- UNKNOWN        -> All subagents inherit parent model
-`
-
 ### Subagent Model Selection
 
-| Subagent Type | Model |
-|---------------|-------|
-| Step 0 detection | Parent model (no override) |
-| Text/code workers | Inherit parent |
-| Visual tasks (UI, frontend, beautification) | Multimodal model (when available) |
-| Screenshot/visual verification | Multimodal model (when available) |
-| Other verification | Inherit parent |
+| Subagent Type | Model | Notes |
+|---------------|-------|-------|
+| All workers | Inherit parent | No override |
+| All verifiers | Inherit parent | No override; visual checks when Step 0 = MULTIMODAL |
 
 ## Context Management (258k Token Limit)
 
