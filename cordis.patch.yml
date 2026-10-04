@@ -1,0 +1,10 @@
+# dsh-plan-guardian bundle patch — the loader row that activates the skill.
+#
+#   id:   loader-row id, used for patch targeting/disable, must be unique
+#   name: the package specifier the loader imports. It must match this
+#         package's `name` in package.json character for character.
+#
+# The plugin takes no configuration, so this row needs no `config:` block.
+- insert:
+    - id: dsh-plan-guardian
+      name: 'dsh-plan-guardian'

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Plan Guardian 严格规划",
+    "description": "随插件分发的技能:每个请求都必须走完 7 步计划,每步都有可判定的验收标准,执行交给 worker 子代理,完成情况由无记忆的独立 verifier 子代理带证据判定 PASS / FAIL。"
+  }
+}

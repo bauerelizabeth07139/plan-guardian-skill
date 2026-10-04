@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Plan Guardian",
+    "description": "Bundled skill: a mandatory 7-step plan with binary acceptance criteria, execution through worker subagents, and completion validated by independent memoryless verifier subagents that report PASS or FAIL with evidence."
+  }
+}
