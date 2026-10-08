@@ -1,5 +1,7 @@
 # plan-guardian-skill
 
+[![dsh.so risk](https://www.dsh.so/badge/plan-guardian-skill.svg)](https://www.dsh.so/artifact/plan-guardian-skill/)
+
 **A mandatory 7-step plan, then verification by independent subagents** — as a
 DeepSeek Harness plugin. The skill ships inside the bundle: install the plugin
 and it is there, with the reference documents it cites.
